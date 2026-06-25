@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/utils/csv_parser.py",
+    "app/services/storage_service.py",
+    "app/services/extraction_service.py",
+]

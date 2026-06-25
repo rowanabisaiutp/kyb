@@ -1,0 +1,12 @@
+[run]
+source = app
+omit =
+    app/utils/csv_parser.py
+    app/services/storage_service.py
+    app/services/extraction_service.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__
+    pass

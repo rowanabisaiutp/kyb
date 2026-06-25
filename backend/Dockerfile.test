@@ -1,0 +1,8 @@
+FROM python:3.13-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install pytest pytest-asyncio pytest-cov httpx
+COPY . .
+ENV DATABASE_URL=postgresql+asyncpg://kyb_dev:kyb_dev_pass@host.docker.internal:5432/kyb_dev
+CMD ["pytest", "tests/", "--cov=app", "--cov-report=term-missing", "-v"]
