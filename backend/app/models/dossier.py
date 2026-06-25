@@ -13,9 +13,9 @@ from app.models.base import Base, TimestampMixin, UUIDMixin
 class DossierStatus(str, enum.Enum):
     DRAFT = "draft"
     IN_REVIEW = "in_review"
-    SAFE = "safe"                # Score < 20, sin bloqueantes.
+    SAFE = "safe"  # Score < 20, sin bloqueantes.
     REVIEW_REQUIRED = "review_required"  # Score 20-49, sin bloqueantes.
-    HIGH_RISK = "high_risk"      # Score >= 50 o factor bloqueante. Aprobacion bloqueada.
+    HIGH_RISK = "high_risk"  # Score >= 50 o factor bloqueante. Aprobacion bloqueada.
     NEEDS_UPDATE = "needs_update"  # Vigencia caducada, scheduler automatico cada hora.
     APPROVED = "approved"
     REJECTED = "rejected"

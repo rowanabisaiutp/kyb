@@ -197,10 +197,16 @@ def calculate_risk(
 ) -> RiskAssessmentResult:
     factors: list[RiskFactor] = []
 
-    _evaluate_fiscal_rules(fiscal_checks, factors)       # Listas SAT (Art. 69/69-B/69-B Bis/49 Bis).
-    _evaluate_document_rules(documents, factors)          # Faltantes, vencidos, CSF fuera de mes.
-    _evaluate_reconciliation_rules(reconciliation_results, factors)  # Discrepancias entre docs.
-    _evaluate_completeness_rules(entity, factors)         # RFC, rep legal, socios.
+    _evaluate_fiscal_rules(
+        fiscal_checks, factors
+    )  # Listas SAT (Art. 69/69-B/69-B Bis/49 Bis).
+    _evaluate_document_rules(
+        documents, factors
+    )  # Faltantes, vencidos, CSF fuera de mes.
+    _evaluate_reconciliation_rules(
+        reconciliation_results, factors
+    )  # Discrepancias entre docs.
+    _evaluate_completeness_rules(entity, factors)  # RFC, rep legal, socios.
 
     total_score = sum(f.points for f in factors)
     has_blocking = any(f.blocking for f in factors)

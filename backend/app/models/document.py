@@ -12,12 +12,14 @@ from app.models.base import Base, TimestampMixin, UUIDMixin
 # Tipos de documento del expediente KYB (Regla 1.4.14 RGCE).
 # Los 5 primeros son obligatorios; si faltan, el score de riesgo sube.
 class DocumentType(str, enum.Enum):
-    ACTA_CONSTITUTIVA = "acta_constitutiva"               # Faltante: +15 riesgo.
+    ACTA_CONSTITUTIVA = "acta_constitutiva"  # Faltante: +15 riesgo.
     IDENTIFICACION_REPRESENTANTE = "identificacion_representante"  # Faltante: +15.
-    PODER_REPRESENTACION = "poder_representacion"          # Opcional ("cuando aplique").
-    COMPROBANTE_DOMICILIO = "comprobante_domicilio"        # Faltante: +10. Vencido: +20.
-    CONSTANCIA_SITUACION_FISCAL = "constancia_situacion_fiscal"  # Faltante: +20. Fuera de mes: +15.
-    MANIFESTACION_PROTESTA = "manifestacion_protesta"      # Faltante: +10.
+    PODER_REPRESENTACION = "poder_representacion"  # Opcional ("cuando aplique").
+    COMPROBANTE_DOMICILIO = "comprobante_domicilio"  # Faltante: +10. Vencido: +20.
+    CONSTANCIA_SITUACION_FISCAL = (
+        "constancia_situacion_fiscal"  # Faltante: +20. Fuera de mes: +15.
+    )
+    MANIFESTACION_PROTESTA = "manifestacion_protesta"  # Faltante: +10.
     RFC_DOCUMENTO = "rfc_documento"
     OTRO = "otro"
 

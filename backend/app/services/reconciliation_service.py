@@ -16,12 +16,12 @@ from app.utils.text_normalization import (
 
 # CONCILIACION: severidad por campo. critical = bloqueante en score, warning = +puntos.
 FIELD_SEVERITY = {
-    "rfc": "critical",              # Discrepancia RFC -> +35 bloqueante.
-    "razon_social": "warning",      # Discrepancia razon social -> +30.
-    "domicilio": "warning",         # Discrepancia domicilio -> +15.
+    "rfc": "critical",  # Discrepancia RFC -> +35 bloqueante.
+    "razon_social": "warning",  # Discrepancia razon social -> +30.
+    "domicilio": "warning",  # Discrepancia domicilio -> +15.
     "representante_legal": "warning",  # Discrepancia rep legal -> +25.
-    "fecha_emision": "info",        # Discrepancia fecha emision -> +10.
-    "fecha_constitucion": "info",   # Discrepancia fecha constitucion -> +5.
+    "fecha_emision": "info",  # Discrepancia fecha emision -> +10.
+    "fecha_constitucion": "info",  # Discrepancia fecha constitucion -> +5.
 }
 
 # Mapa de campos a fuentes. Cada campo se extrae de N tipos de documento.
