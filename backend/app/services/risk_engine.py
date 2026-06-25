@@ -51,7 +51,7 @@ ART_69B_SITUATION_RULES: dict[str, tuple[str, int, bool, str]] = {
         "FISCAL_69B_DEFINITIVO",
         50,
         True,
-        "EFOS definitivo (Art. 69-B CFF) — tambien cubre Art. 49 Bis CFF",
+        "EFOS definitivo (Art. 69-B CFF)",
     ),
     "Presunto": ("FISCAL_69B_PRESUNTO", 40, True, "EFOS presunto (Art. 69-B CFF)"),
     "Desvirtuado": (
@@ -142,6 +142,7 @@ SUGGESTED_ACTIONS: dict[str, str] = {
     "FISCAL_69B_PRESUNTO": "Verificar situacion de EFOS presunto urgentemente",
     "FISCAL_69B_DESVIRTUADO": "Documentar evidencia de desvirtuacion de EFOS",
     "FISCAL_69B_BIS": "Revisar operacion por transmision indebida de perdidas",
+    "FISCAL_49BIS": "Verificar operaciones con contribuyentes EFOS (Art. 49 Bis CFF)",
     "FISCAL_CHECK_STALE": "Actualizar consulta de listas fiscales del SAT",
     "FISCAL_NEVER_CHECKED": "Ejecutar consulta de listas fiscales del SAT",
     "DOC_MISSING_ACTA": "Cargar acta constitutiva",
@@ -239,6 +240,8 @@ def _evaluate_fiscal_rules(
     for fc in found_checks:
         if fc.list_type == "art_69b":
             _evaluate_69b_check(fc, factors, processed_types)
+        elif fc.list_type == "art_49bis":
+            _evaluate_49bis_check(fc, factors, processed_types)
         elif fc.list_type in FISCAL_RULES and fc.list_type not in processed_types:
             points, blocking, desc = FISCAL_RULES[fc.list_type]
             code = f"FISCAL_{fc.list_type.upper().replace('ART_', '')}"
@@ -301,6 +304,44 @@ def _evaluate_69b_check(
             category="fiscal",
             blocking=True,
             details={"situation": situation or "unknown"},
+        )
+    )
+
+
+def _evaluate_49bis_check(
+    fc: FiscalListCheck, factors: list[RiskFactor], processed: set[str]
+) -> None:
+    if "art_49bis" in processed:
+        return
+    processed.add("art_49bis")
+
+    if "art_69b" in processed:
+        factors.append(
+            RiskFactor(
+                code="FISCAL_49BIS",
+                points=0,
+                description="Art. 49 Bis CFF: cubierto por hallazgo en Art. 69-B (misma fuente publica del SAT)",
+                category="fiscal",
+                blocking=False,
+                details={
+                    "source_url": fc.source_url,
+                    "justification": "El listado Art. 69-B del SAT es la unica fuente publica disponible para Art. 49 Bis CFF. El riesgo ya se contabiliza en la regla Art. 69-B.",
+                },
+            )
+        )
+        return
+
+    factors.append(
+        RiskFactor(
+            code="FISCAL_49BIS",
+            points=45,
+            description="Operaciones con EFOS (Art. 49 Bis CFF)",
+            category="fiscal",
+            blocking=True,
+            details={
+                "source_url": fc.source_url,
+                "justification": "Fuente: listado Art. 69-B del SAT, unica base publica disponible para Art. 49 Bis CFF.",
+            },
         )
     )
 

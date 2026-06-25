@@ -68,6 +68,7 @@ def _make_clean_fiscal():
         "art_69_csd_sin_efectos",
         "art_69b",
         "art_69b_bis",
+        "art_49bis",
     ]:
         checks.append(
             FiscalListCheck(
@@ -243,6 +244,42 @@ class TestCalculateRiskFiscal:
         )
         codes = [f.code for f in result.factors]
         assert "FISCAL_NEVER_CHECKED" in codes
+
+    def test_found_in_49bis_with_69b(self):
+        checks = _make_clean_fiscal()
+        for c in checks:
+            if c.list_type in ("art_69b", "art_49bis"):
+                c.found = True
+                c.result_detail = [{"Situacion del contribuyente": "Definitivo"}]
+        result = calculate_risk(
+            entity=_make_entity(),
+            documents=_make_docs(),
+            fiscal_checks=checks,
+            reconciliation_results=[],
+        )
+        codes = [f.code for f in result.factors]
+        assert "FISCAL_69B_DEFINITIVO" in codes
+        assert "FISCAL_49BIS" in codes
+        f49 = [f for f in result.factors if f.code == "FISCAL_49BIS"]
+        assert f49[0].points == 0
+
+    def test_found_in_49bis_without_69b(self):
+        checks = _make_clean_fiscal()
+        for c in checks:
+            if c.list_type == "art_49bis":
+                c.found = True
+                c.result_detail = [{"Situacion del contribuyente": "Definitivo"}]
+        result = calculate_risk(
+            entity=_make_entity(),
+            documents=_make_docs(),
+            fiscal_checks=checks,
+            reconciliation_results=[],
+        )
+        codes = [f.code for f in result.factors]
+        assert "FISCAL_49BIS" in codes
+        f49 = [f for f in result.factors if f.code == "FISCAL_49BIS"]
+        assert f49[0].points == 45
+        assert f49[0].blocking is True
 
     def test_found_in_no_localizados(self):
         checks = _make_clean_fiscal()

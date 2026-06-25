@@ -47,6 +47,11 @@ SAT_LISTS = {
         "article": "69-B Bis CFF",
         "description": "Transmision indebida de perdidas fiscales",
     },
+    "art_49bis": {
+        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGAFF/Listado_completo_69-B.csv",
+        "article": "49 Bis CFF",
+        "description": "Operaciones con EFOS (fuente: listado Art. 69-B, unica base publica disponible del SAT)",
+    },
 }
 
 
@@ -111,8 +116,26 @@ async def load_all_lists() -> dict[str, dict[str, list[dict]]]:
     import asyncio
 
     keys = list(SAT_LISTS.keys())
-    results = await asyncio.gather(*[download_and_parse_csv(k) for k in keys])
-    return dict(zip(keys, results))
+    url_to_key: dict[str, str] = {}
+    to_download: list[str] = []
+    reuse_map: dict[str, str] = {}
+
+    for k in keys:
+        url = SAT_LISTS[k]["url"]
+        if url in url_to_key:
+            reuse_map[k] = url_to_key[url]
+        else:
+            url_to_key[url] = k
+            to_download.append(k)
+
+    results = await asyncio.gather(*[download_and_parse_csv(k) for k in to_download])
+    all_lists = dict(zip(to_download, results))
+
+    for k, source_k in reuse_map.items():
+        all_lists[k] = all_lists[source_k]
+        logger.info("Reused %s data for %s (same source URL)", source_k, k)
+
+    return all_lists
 
 
 def search_rfc(all_lists: dict[str, dict[str, list[dict]]], rfc: str) -> list[dict]:
