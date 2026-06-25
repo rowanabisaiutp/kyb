@@ -1,78 +1,123 @@
 # KYB Platform — Agencia Aduanal
 
-Plataforma web KYB (Know Your Business) para agencias aduanales. Determina si una persona moral mexicana es **segura**, **requiere revision** o es **riesgosa** para operar comercio exterior, cumpliendo con la Regla 1.4.14 de las RGCE 2026.
+Plataforma web KYB (Know Your Business) para agencias aduanales mexicanas. Determina si una persona moral es **segura**, **requiere revision** o es **riesgosa** para operar comercio exterior, cumpliendo con la Regla 1.4.14 de las RGCE 2026.
 
-## Stack
+**URL:** https://kyb-platform.fly.dev  
+**Repo:** https://github.com/rowanabisaiutp/kyb
+
+---
+
+## Stack Tecnologico
 
 | Capa | Tecnologia |
 |------|-----------|
-| Frontend | React 19 + TypeScript + Vite + Tailwind CSS v4 |
+| Frontend | React 19 + TypeScript + Vite 6 + Tailwind CSS v4 |
 | Backend | FastAPI + SQLAlchemy Async + Pydantic v2 |
-| Base de Datos | PostgreSQL |
-| AI | Gemini 2.5 Flash / Claude API (extraccion de documentos) |
-| Deploy | Fly.io (monolito) |
-| Listas Fiscales | Datos reales del SAT (8 CSVs publicos) |
+| Base de Datos | PostgreSQL (Fly Postgres) |
+| AI Multi-modelo | Gemini 2.0 Flash → Groq Llama 3.3 → Claude (fallback automatico) |
+| Listas Fiscales | 8 CSVs reales del SAT (500K+ RFCs) |
+| Deploy | Fly.io (monolito, Docker multi-stage) |
+| CI | GitHub Actions (lint, tests, build) |
+
+---
 
 ## Funcionalidades
 
-### Expediente KYB
-- Crear expedientes con datos de persona moral, representante legal y socios
-- Cargar documentos: acta constitutiva, CSF, INE, comprobante domicilio, manifestacion bajo protesta, poder de representacion
-- Checklist de documentos requeridos (5/5)
+### Proceso KYB Guiado (Wizard de 6 Pasos)
 
-### Extraccion AI
-- Al subir un documento PDF/imagen, Gemini extrae automaticamente los datos estructurados (RFC, razon social, domicilio, etc.)
-- Soporta CSF, actas constitutivas, INE, comprobantes, poderes
+La plataforma guia al usuario paso a paso a traves del proceso KYB:
 
-### Listas Fiscales del SAT
-- Consulta **datos reales** del SAT (no mocks)
-- 8 listas: Art. 69 CFF (Cancelados, Exigibles, Firmes, No Localizados, Sentencias, CSD sin efectos) + Art. 69-B + Art. 69-B Bis
-- +500,000 RFCs reales cargados en memoria
-- Cada consulta guarda: fuente, fecha/hora, RFC buscado, resultado, referencia al listado
-- Actualizacion automatica cada 24 horas
+1. **Datos de la Empresa** — RFC y razon social para iniciar, datos adicionales opcionales
+2. **Documentos** — Carga de documentos con clasificacion automatica por AI y extraccion de datos
+3. **Verificacion SAT** — Consulta automatica del RFC en 8 listas fiscales publicas reales
+4. **Conciliacion** — Comparacion automatica de datos entre documentos y formulario
+5. **Evaluacion de Riesgo** — Score determinístico con 30+ reglas explicables
+6. **Decision Final** — Resumen ejecutivo AI + aprobacion/rechazo con bloqueo si hay riesgo critico
+
+### AI Multi-Modelo con Fallback
+
+La plataforma usa 3 proveedores de AI con fallback automatico. Si uno falla por quota o error, el siguiente responde sin que el usuario lo note:
+
+- **Gemini 2.0 Flash** (Google) — principal, vision + texto
+- **Groq Llama 3.3 70B** — fallback rapido, alto limite gratis
+- **Claude Sonnet** (Anthropic) — fallback final
+
+Funciones AI:
+- **Clasificacion automatica de documentos** — sube un PDF y la AI detecta si es CSF, acta, INE, comprobante, etc.
+- **Extraccion de datos** — AI lee el documento y extrae RFC, razon social, domicilio, fechas, socios
+- **Resumen ejecutivo** — AI genera un parrafo explicando el estado del expediente y su recomendacion
+
+### Listas Fiscales del SAT (Datos Reales)
+
+Consulta directa a los CSVs publicos del SAT — no mocks:
+
+| Lista | Articulo | RFCs |
+|-------|----------|------|
+| Cancelados | Art. 69 CFF | ~181,000 |
+| Exigibles | Art. 69 CFF | ~5,800 |
+| Firmes | Art. 69 CFF | ~258,000 |
+| No Localizados | Art. 69 CFF | ~53,000 |
+| Sentencias | Art. 69 CFF | ~572 |
+| CSD Sin Efectos | Art. 69 CFF | ~57,500 |
+| EFOS | Art. 69-B CFF | ~14,300 |
+| Perdidas Indebidas | Art. 69-B Bis CFF | ~3 |
+
+Cada consulta guarda: fuente, fecha/hora, RFC buscado, resultado y referencia al listado.
+
+### Score de Riesgo Explicable
+
+Motor determinístico con 30+ reglas. Cada factor muestra puntos, descripcion y si bloquea la aprobacion:
+
+| Categoria | Ejemplo | Puntos |
+|-----------|---------|--------|
+| Fiscal | EFOS Definitivo (Art. 69-B) | +50 (bloqueante) |
+| Fiscal | No Localizado (Art. 69) | +50 (bloqueante) |
+| Documentos | CSF faltante | +20 |
+| Documentos | Comprobante vencido | +20 |
+| Conciliacion | Discrepancia de RFC | +35 (bloqueante) |
+| Conciliacion | Discrepancia razon social | +30 |
+| Completitud | Sin representante legal | +20 |
+
+Clasificacion: `safe` (<20) · `review_required` (20-49) · `high_risk` (>=50 o bloqueante)
 
 ### Conciliacion de Datos
-- Compara datos entre documentos y formulario: RFC, razon social, domicilio, representante legal, fechas
-- Normalizacion de razones sociales (S.A. DE C.V. = SA DE CV)
-- Severidad por campo: critical (RFC), warning (razon social, domicilio), info (fechas)
 
-### Score de Riesgo
-- **Deterministico, explicable y testeable**
-- 30+ reglas con puntos y factores bloqueantes
-- Factores: listas fiscales, documentos faltantes/vencidos, CSF fuera de mes, discrepancias, completitud
-- Clasificacion: `safe` (<20 pts) | `review_required` (20-49) | `high_risk` (>=50 o bloqueante)
-- Ejemplo: +20 por comprobante vencido, +30 por discrepancia de razon social, 0 por listas limpias
-- Acciones sugeridas automaticas por cada factor
-- Bloquea aprobacion si hay riesgo critico
+Compara automaticamente entre documentos y formulario:
+- RFC y razon social (CSF vs acta vs formulario)
+- Domicilio (CSF vs comprobante vs formulario)
+- Representante legal (poder vs ID vs formulario)
+- Fechas de emision y constitucion
 
-### Vigencias
-- Scheduler automatico cada hora
-- Marca expedientes como `needs_update` cuando:
-  - Un documento vence
-  - La CSF no es del mes vigente
-  - La revision fiscal tiene mas de 3 meses
+### Vigencias Automaticas
+
+Scheduler cada hora que marca expedientes como `needs_update` cuando:
+- Un documento vence
+- La CSF no es del mes vigente
+- La revision fiscal tiene mas de 3 meses
 
 ### Audit Log
-- Registro de todas las acciones: creacion, uploads, consultas, calculos, aprobaciones
-- Timeline visual en la UI
+
+Registro completo de todas las acciones con timeline visual: creacion, uploads, extracciones AI, consultas SAT, calculos de riesgo, aprobaciones/rechazos.
+
+---
 
 ## Arquitectura
 
 ```
-[Browser] --> [Fly.io: FastAPI]
-                 ├── /api/v1/*  --> routers -> services -> models
-                 ├── /*         --> React SPA (static files)
-                 ├── PostgreSQL (Fly Postgres)
-                 ├── Gemini API (extraccion de documentos)
-                 └── SAT CSVs (datos reales, en memoria, refresh cada 24h)
+[Browser] → [Fly.io: FastAPI + React SPA]
+                ├── /api/v1/*  → routers → services → models
+                ├── /*         → React SPA (static files)
+                ├── PostgreSQL (Fly Postgres)
+                ├── AI (Gemini → Groq → Claude, fallback)
+                └── SAT CSVs (datos reales, en memoria)
 ```
+
+---
 
 ## Correr Localmente
 
 ### Requisitos
-- Python 3.13+
-- Node.js 22+
-- Docker (para PostgreSQL)
+- Python 3.13+, Node.js 22+, Docker
 
 ### Setup
 
@@ -84,63 +129,61 @@ docker run -d --name kyb-dev-db -p 5432:5432 \
 
 # 2. Backend
 cd backend
-python -m venv venv
-venv/Scripts/activate  # Windows
+python -m venv venv && venv/Scripts/activate
 pip install -r requirements.txt
-cp .env.example .env   # configurar GEMINI_API_KEY
+cp .env.example .env  # configurar API keys
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 # 3. Frontend
 cd frontend
-npm install
-npm run dev
+npm install && npm run dev
 ```
 
-### Con Docker (todo junto)
+### Con Docker
 ```bash
 docker build -t kyb-platform .
-docker run -d --name kyb -p 8080:8080 \
-  -e GEMINI_API_KEY=tu_key \
-  kyb-platform
+docker run -d -p 8080:8080 -e GEMINI_API_KEY=key -e GROQ_API_KEY=key kyb-platform
 ```
 
-Abrir http://localhost:8080
+---
 
 ## Tests
 
 ```bash
-# Backend (90 unit tests)
-cd backend
-pytest tests/ --cov=app -q
+# Backend unit tests
+cd backend && pytest tests/ --cov=app -q
 
-# Frontend (85 unit + integration tests)
-cd frontend
-npx vitest run
+# Frontend unit + integration
+cd frontend && npx vitest run
 
-# E2E (13 tests con Playwright)
-npx playwright test
+# E2E (Playwright)
+cd frontend && npx playwright test
 ```
 
-**219 tests totales, 0 fallos.**
+---
 
 ## API
 
-```
-POST/GET  /api/v1/entities
-POST/GET  /api/v1/dossiers
-POST/GET  /api/v1/dossiers/{id}/documents
-POST      /api/v1/dossiers/{id}/fiscal-check
-POST/GET  /api/v1/dossiers/{id}/reconciliation
-POST      /api/v1/dossiers/{id}/risk-assessment
-GET       /api/v1/dossiers/{id}/audit-log
-GET       /api/v1/health
-```
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| POST/GET | /api/v1/entities | CRUD personas morales |
+| POST/GET | /api/v1/dossiers | CRUD expedientes |
+| POST/GET | /api/v1/dossiers/{id}/documents | Upload y gestion de documentos |
+| POST | /api/v1/documents/classify | Clasificacion AI de documentos |
+| POST | /api/v1/dossiers/{id}/fiscal-check | Consulta listas SAT |
+| POST/GET | /api/v1/dossiers/{id}/reconciliation | Conciliacion de datos |
+| POST | /api/v1/dossiers/{id}/risk-assessment | Calculo de riesgo |
+| GET | /api/v1/dossiers/{id}/summary | Resumen ejecutivo AI |
+| GET | /api/v1/dossiers/{id}/audit-log | Registro de auditoria |
+| GET | /api/v1/health | Health check |
+
+---
 
 ## Deploy
 
 Desplegado en Fly.io con PostgreSQL managed.
 
 ```bash
-flyctl secrets set GEMINI_API_KEY=tu_key --app kyb-platform
-flyctl deploy
+flyctl secrets set GEMINI_API_KEY=key GROQ_API_KEY=key --app kyb-platform
+flyctl deploy --app kyb-platform --local-only
 ```
