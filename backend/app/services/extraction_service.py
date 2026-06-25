@@ -193,3 +193,66 @@ def _parse_json_response(text: str) -> dict:
                 pass
         logger.warning("Failed to parse JSON from AI response: %s", text[:200])
         return None
+
+
+CLASSIFY_PROMPT = (
+    "Analiza este documento y determina su tipo. Responde UNICAMENTE con un JSON:\n"
+    '{"document_type": "<tipo>", "confidence": <0-100>}\n\n'
+    "Tipos validos:\n"
+    "- constancia_situacion_fiscal (CSF del SAT)\n"
+    "- acta_constitutiva (acta notarial de constitucion)\n"
+    "- identificacion_representante (INE, pasaporte, ID oficial)\n"
+    "- comprobante_domicilio (recibo de luz, agua, telefono, estado de cuenta)\n"
+    "- poder_representacion (poder notarial)\n"
+    "- manifestacion_protesta (declaracion bajo protesta de decir verdad)\n"
+    "- rfc_documento (cedula de identificacion fiscal)\n"
+    "- otro (si no coincide con ninguno)\n"
+)
+
+
+async def classify_document(file_data: bytes, mime_type: str) -> dict | None:
+    if not settings.GEMINI_API_KEY:
+        return None
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                genai.types.Part.from_bytes(data=file_data, mime_type=mime_type),
+                CLASSIFY_PROMPT,
+            ],
+        )
+        return _parse_json_response(response.text)
+    except Exception as e:
+        logger.error("Document classification failed: %s", e)
+        return None
+
+
+SUMMARY_PROMPT = (
+    "Eres un oficial de cumplimiento de una agencia aduanal mexicana. "
+    "Genera un resumen ejecutivo en español (maximo 3 oraciones) del estado de este expediente KYB. "
+    "Incluye: nombre de la empresa, estado en listas fiscales, documentos faltantes, "
+    "discrepancias encontradas, y tu recomendacion (aprobar, revisar, o rechazar). "
+    "Responde UNICAMENTE con un JSON: {\"resumen\": \"<texto>\", \"recomendacion\": \"<aprobar|revisar|rechazar>\"}"
+)
+
+
+async def generate_dossier_summary(dossier_data: dict) -> dict | None:
+    if not settings.GEMINI_API_KEY:
+        return None
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        context = json.dumps(dossier_data, ensure_ascii=False, default=str)
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[f"{SUMMARY_PROMPT}\n\nDatos del expediente:\n{context}"],
+        )
+        return _parse_json_response(response.text)
+    except Exception as e:
+        logger.error("Summary generation failed: %s", e)
+        return None

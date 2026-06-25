@@ -170,3 +170,55 @@ async def get_latest_risk_assessment(
         else [],
         calculated_at=r.calculated_at,
     )
+
+
+@router.get("/dossiers/{dossier_id}/summary")
+async def get_dossier_summary(
+    dossier_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.extraction_service import generate_dossier_summary
+
+    dossier = await db.get(Dossier, dossier_id)
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier not found")
+
+    entity_result = await db.execute(
+        select(LegalEntity).where(LegalEntity.id == dossier.entity_id)
+    )
+    entity = entity_result.scalar_one_or_none()
+
+    docs_result = await db.execute(
+        select(FiscalListCheck).where(FiscalListCheck.dossier_id == dossier_id)
+    )
+    fiscal_checks = docs_result.scalars().all()
+
+    recon_result = await db.execute(
+        select(ReconciliationResult).where(
+            ReconciliationResult.dossier_id == dossier_id
+        )
+    )
+    reconciliation = recon_result.scalars().all()
+
+    from app.services.document_service import list_documents, get_missing_documents
+
+    documents = await list_documents(db, dossier_id)
+    missing = get_missing_documents(documents)
+
+    dossier_data = {
+        "empresa": entity.razon_social if entity else "",
+        "rfc": entity.rfc if entity else "",
+        "status": dossier.status,
+        "risk_score": dossier.current_risk_score,
+        "risk_classification": dossier.current_risk_classification,
+        "documentos_cargados": len(documents),
+        "documentos_faltantes": missing,
+        "listas_fiscales_encontrado": sum(1 for fc in fiscal_checks if fc.found),
+        "listas_fiscales_total": len(fiscal_checks),
+        "discrepancias": sum(1 for r in reconciliation if not r.match),
+    }
+
+    summary = await generate_dossier_summary(dossier_data)
+    if not summary:
+        raise HTTPException(status_code=503, detail="Summary service unavailable")
+    return summary

@@ -18,7 +18,7 @@ function renderSidebar(route = "/") {
 describe("Sidebar", () => {
   it("renders logo", () => {
     renderSidebar();
-    expect(screen.getByText("KYB Platform")).toBeInTheDocument();
+    expect(screen.getByText("KYB Compliance")).toBeInTheDocument();
   });
 
   it("renders navigation items", () => {

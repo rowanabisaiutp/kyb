@@ -23,34 +23,27 @@ describe("DossierCreatePage", () => {
     expect(screen.getByText("Nuevo Expediente KYB")).toBeInTheDocument();
   });
 
-  it("renders entity fields", () => {
+  it("renders RFC and Razon Social fields", () => {
     renderPage();
-    expect(screen.getByLabelText("RFC *")).toBeInTheDocument();
-    expect(screen.getByLabelText("Razon Social *")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre Comercial")).toBeInTheDocument();
-    expect(screen.getByLabelText("Codigo Postal")).toBeInTheDocument();
-    expect(screen.getByLabelText("Domicilio Fiscal")).toBeInTheDocument();
+    expect(screen.getByLabelText("RFC de la Persona Moral")).toBeInTheDocument();
+    expect(screen.getByLabelText("Razon Social")).toBeInTheDocument();
   });
 
-  it("renders representative fields", () => {
-    renderPage();
-    expect(screen.getByText("Representante Legal")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre Completo")).toBeInTheDocument();
-    expect(screen.getByLabelText("Cargo")).toBeInTheDocument();
-    expect(screen.getByLabelText("CURP")).toBeInTheDocument();
-  });
-
-  it("renders action buttons", () => {
+  it("renders create button", () => {
     renderPage();
     expect(screen.getByText("Crear Expediente")).toBeInTheDocument();
-    expect(screen.getByText("Cancelar")).toBeInTheDocument();
+  });
+
+  it("renders back link", () => {
+    renderPage();
+    expect(screen.getByText("Volver a expedientes")).toBeInTheDocument();
   });
 
   it("has required fields", () => {
     renderPage();
-    const rfcInput = screen.getByLabelText("RFC *");
+    const rfcInput = screen.getByLabelText("RFC de la Persona Moral");
     expect(rfcInput).toBeRequired();
-    const razonInput = screen.getByLabelText("Razon Social *");
+    const razonInput = screen.getByLabelText("Razon Social");
     expect(razonInput).toBeRequired();
   });
 });

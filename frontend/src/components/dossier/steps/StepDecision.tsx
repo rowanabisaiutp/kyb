@@ -1,6 +1,7 @@
 import axios from "axios";
-import { CheckCircle, FileText, Search, Shield, XCircle } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle, FileText, Search, Shield, Sparkles, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getDossierSummary, type DossierSummary } from "../../../api/ai";
 import type { Dossier } from "../../../types";
 import { useUpdateDossierStatus } from "../../../hooks/useDossier";
 import { useDocumentChecklist } from "../../../hooks/useDocuments";
@@ -24,6 +25,16 @@ export function StepDecision({ dossier }: Props) {
   const { data: auditEntries, isLoading: auditLoading } = useDossierAuditLog(dossier.id);
   const [error, setError] = useState<string | null>(null);
   const [showAudit, setShowAudit] = useState(false);
+  const [summary, setSummary] = useState<DossierSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  useEffect(() => {
+    setSummaryLoading(true);
+    getDossierSummary(dossier.id)
+      .then(setSummary)
+      .catch(() => {})
+      .finally(() => setSummaryLoading(false));
+  }, [dossier.id]);
 
   const isHighRisk = dossier.current_risk_classification === "high_risk";
   const isDecided = dossier.status === "approved" || dossier.status === "rejected";
@@ -60,6 +71,23 @@ export function StepDecision({ dossier }: Props) {
       <p className="text-sm text-text-secondary mt-1 mb-6">
         Resumen del expediente y decision de aprobacion.
       </p>
+
+      {summaryLoading ? (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 animate-pulse">
+          <p className="text-sm text-purple-700">Generando resumen ejecutivo con AI...</p>
+        </div>
+      ) : summary ? (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-semibold text-purple-700">Resumen Ejecutivo AI</span>
+          </div>
+          <p className="text-sm text-text">{summary.resumen}</p>
+          <p className="text-xs text-purple-600 mt-2 font-medium">
+            Recomendacion AI: {summary.recomendacion}
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-4 mb-8">
         <SummaryCard icon={FileText} label="Documentos" value={`${checklist?.total_present ?? 0}/${checklist?.total_required ?? 5} cargados`}

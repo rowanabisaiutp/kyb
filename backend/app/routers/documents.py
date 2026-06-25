@@ -12,7 +12,7 @@ from app.schemas.document import (
     MissingDocumentsResponse,
 )
 from app.services import document_service
-from app.services.extraction_service import extract_document_data
+from app.services.extraction_service import classify_document, extract_document_data
 from app.services.storage_service import get_presigned_url
 
 logger = logging.getLogger(__name__)
@@ -159,3 +159,15 @@ async def delete_document(
     if not deleted:
         raise HTTPException(status_code=404, detail="Document not found")
     await db.commit()
+
+
+@router.post("/documents/classify")
+async def classify_uploaded_document(
+    file: UploadFile = File(...),
+):
+    file_data = await file.read()
+    mime = file.content_type or "application/pdf"
+    result = await classify_document(file_data, mime)
+    if not result:
+        raise HTTPException(status_code=503, detail="Classification service unavailable")
+    return result

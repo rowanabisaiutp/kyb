@@ -1,8 +1,10 @@
-import { Upload } from "lucide-react";
+import { Sparkles, Upload } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { classifyDocument } from "../../api/ai";
 import type { DocumentType } from "../../types";
 import { DOCUMENT_TYPE_LABELS } from "../../utils/statusLabels";
+import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Select } from "../ui/Select";
 
@@ -19,9 +21,27 @@ const DOCUMENT_TYPE_OPTIONS = Object.entries(DOCUMENT_TYPE_LABELS).map(([value, 
 export function DocumentUploadZone({ onUpload, loading }: DocumentUploadZoneProps) {
   const [selectedType, setSelectedType] = useState<DocumentType>("constancia_situacion_fiscal");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [classifying, setClassifying] = useState(false);
+  const [autoDetected, setAutoDetected] = useState(false);
 
-  const onDrop = useCallback((accepted: File[]) => {
-    if (accepted.length > 0) setSelectedFile(accepted[0]);
+  const onDrop = useCallback(async (accepted: File[]) => {
+    if (accepted.length === 0) return;
+    const file = accepted[0];
+    setSelectedFile(file);
+    setAutoDetected(false);
+
+    setClassifying(true);
+    try {
+      const result = await classifyDocument(file);
+      if (result?.document_type && result.confidence > 50) {
+        setSelectedType(result.document_type as DocumentType);
+        setAutoDetected(true);
+      }
+    } catch {
+      // classification failed silently, user selects manually
+    } finally {
+      setClassifying(false);
+    }
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -39,17 +59,30 @@ export function DocumentUploadZone({ onUpload, loading }: DocumentUploadZoneProp
     if (!selectedFile) return;
     onUpload(selectedFile, selectedType);
     setSelectedFile(null);
+    setAutoDetected(false);
   }
 
   return (
     <div className="space-y-4">
-      <Select
-        label="Tipo de Documento"
-        id="document_type"
-        options={DOCUMENT_TYPE_OPTIONS}
-        value={selectedType}
-        onChange={(e) => setSelectedType(e.target.value as DocumentType)}
-      />
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <label className="block text-sm font-medium text-text">Tipo de Documento</label>
+          {autoDetected && (
+            <Badge className="bg-purple-100 text-purple-700">
+              <Sparkles className="w-3 h-3 mr-1 inline" /> Detectado por AI
+            </Badge>
+          )}
+          {classifying && (
+            <span className="text-xs text-text-secondary animate-pulse">Detectando tipo...</span>
+          )}
+        </div>
+        <Select
+          id="document_type"
+          options={DOCUMENT_TYPE_OPTIONS}
+          value={selectedType}
+          onChange={(e) => { setSelectedType(e.target.value as DocumentType); setAutoDetected(false); }}
+        />
+      </div>
 
       <div
         {...getRootProps()}
@@ -63,7 +96,7 @@ export function DocumentUploadZone({ onUpload, loading }: DocumentUploadZoneProp
         ) : (
           <>
             <p className="text-sm text-text-secondary">Arrastra un archivo o haz clic para seleccionar</p>
-            <p className="text-xs text-text-secondary mt-1">PDF, JPEG, PNG — Max 10 MB</p>
+            <p className="text-xs text-text-secondary mt-1">PDF, JPEG, PNG — Max 10 MB. El tipo se detecta automaticamente.</p>
           </>
         )}
       </div>
