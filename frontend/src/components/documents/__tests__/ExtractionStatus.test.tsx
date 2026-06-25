@@ -10,7 +10,7 @@ describe("ExtractionStatus", () => {
 
   it("shows Procesando for processing", () => {
     render(<ExtractionStatus status="processing" />);
-    expect(screen.getByText("Procesando")).toBeInTheDocument();
+    expect(screen.getByText("Procesando...")).toBeInTheDocument();
   });
 
   it("shows Extraido for completed", () => {
@@ -18,8 +18,8 @@ describe("ExtractionStatus", () => {
     expect(screen.getByText("Extraido")).toBeInTheDocument();
   });
 
-  it("shows Error for failed", () => {
+  it("shows message for failed", () => {
     render(<ExtractionStatus status="failed" />);
-    expect(screen.getByText("Error")).toBeInTheDocument();
+    expect(screen.getByText("Extraccion no disponible")).toBeInTheDocument();
   });
 });
