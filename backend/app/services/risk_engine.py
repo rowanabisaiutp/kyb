@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from app.models.document import Document
 from app.models.entity import LegalEntity

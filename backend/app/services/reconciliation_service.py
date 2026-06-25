@@ -10,7 +10,6 @@ from app.services.audit_service import log_action
 from app.utils.text_normalization import (
     business_names_match,
     normalize_address,
-    normalize_business_name,
     normalize_text,
     texts_match,
 )

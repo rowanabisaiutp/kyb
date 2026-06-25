@@ -1,5 +1,3 @@
-from datetime import date
-
 from app.models.document import Document
 from app.models.fiscal_check import FiscalListCheck
 from app.utils.date_utils import is_current_month, is_expired, is_older_than_months

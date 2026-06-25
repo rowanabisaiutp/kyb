@@ -24,7 +24,7 @@ def _clean_fiscal():
 
 
 async def _new_entity(client, rfc=None):
-    rfc = rfc or f"I{uuid.uuid4().hex[:11].upper()}"
+    rfc = rfc or f"TST{uuid.uuid4().hex[:6].upper()}010100"
     r = await client.post("/api/v1/entities", json={
         "rfc": rfc, "razon_social": "Test SA de CV",
         "domicilio_fiscal": "Av Reforma 222, CDMX",
