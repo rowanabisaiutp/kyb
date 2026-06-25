@@ -29,11 +29,13 @@ export function StepDecision({ dossier }: Props) {
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     setSummaryLoading(true);
     getDossierSummary(dossier.id)
-      .then(setSummary)
+      .then((s) => { if (!cancelled) setSummary(s); })
       .catch(() => {})
-      .finally(() => setSummaryLoading(false));
+      .finally(() => { if (!cancelled) setSummaryLoading(false); });
+    return () => { cancelled = true; };
   }, [dossier.id]);
 
   const isHighRisk = dossier.current_risk_classification === "high_risk";
@@ -73,8 +75,11 @@ export function StepDecision({ dossier }: Props) {
       </p>
 
       {summaryLoading ? (
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6 animate-pulse">
-          <p className="text-sm text-purple-700">Generando resumen ejecutivo con AI...</p>
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-purple-700">Generando resumen ejecutivo con AI...</p>
+          </div>
         </div>
       ) : summary ? (
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">

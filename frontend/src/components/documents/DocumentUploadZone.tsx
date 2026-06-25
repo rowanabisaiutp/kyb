@@ -73,7 +73,7 @@ export function DocumentUploadZone({ onUpload, loading }: DocumentUploadZoneProp
             </Badge>
           )}
           {classifying && (
-            <span className="text-xs text-text-secondary animate-pulse">Detectando tipo...</span>
+            <Badge className="bg-blue-100 text-blue-700 animate-pulse">Detectando tipo con AI...</Badge>
           )}
         </div>
         <Select
