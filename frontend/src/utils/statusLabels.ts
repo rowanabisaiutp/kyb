@@ -33,6 +33,15 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   otro: "Otro",
 };
 
+export const STEP_LABELS = [
+  { label: "Datos de la Empresa", description: "Informacion basica de la persona moral" },
+  { label: "Documentos", description: "Carga de documentos requeridos" },
+  { label: "Verificacion SAT", description: "Consulta de listas fiscales" },
+  { label: "Conciliacion", description: "Comparacion de datos entre fuentes" },
+  { label: "Evaluacion de Riesgo", description: "Calculo del score de riesgo" },
+  { label: "Decision Final", description: "Aprobacion o rechazo del expediente" },
+] as const;
+
 export const REQUIRED_DOCUMENTS: DocumentType[] = [
   "acta_constitutiva",
   "identificacion_representante",

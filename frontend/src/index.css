@@ -13,8 +13,12 @@
   --color-neutral: #6b7280;
   --color-neutral-bg: #f9fafb;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f8fafc;
-  --color-border: #e2e8f0;
+  --color-surface-secondary: #ffffff;
+  --color-surface-sidebar: #f8fafc;
+  --color-border: #e5e7eb;
   --color-text: #0f172a;
   --color-text-secondary: #64748b;
+  --color-step-active: #1e40af;
+  --color-step-complete: #16a34a;
+  --color-step-pending: #cbd5e1;
 }
