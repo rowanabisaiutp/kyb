@@ -1,4 +1,4 @@
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "../components/layout/Header";
@@ -7,7 +7,7 @@ import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { StatusBadge } from "../components/ui/StatusBadge";
-import { useDossiers } from "../hooks/useDossiers";
+import { useDeleteDossier, useDossiers } from "../hooks/useDossiers";
 import { formatDate } from "../utils/formatDate";
 
 export function DossierListPage() {
@@ -81,28 +81,54 @@ export function DossierListPage() {
       ) : (
         <div className="space-y-3">
           {dossiers.map((d) => (
-            <Link key={d.id} to={`/dossiers/${d.id}`} className="block no-underline">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-text">{d.entity?.razon_social ?? "—"}</p>
-                    <p className="text-xs text-text-secondary mt-0.5">RFC: {d.entity?.rfc}</p>
+            <div key={d.id} className="flex items-center gap-2">
+              <Link to={`/dossiers/${d.id}`} className="block no-underline flex-1">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-text">{d.entity?.razon_social ?? "—"}</p>
+                      <p className="text-xs text-text-secondary mt-0.5">RFC: {d.entity?.rfc}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {d.current_risk_score != null && (
+                        <span className="text-sm font-mono text-text-secondary">
+                          Score: {d.current_risk_score}
+                        </span>
+                      )}
+                      <StatusBadge status={d.status} />
+                      <span className="text-xs text-text-secondary">{formatDate(d.created_at)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    {d.current_risk_score != null && (
-                      <span className="text-sm font-mono text-text-secondary">
-                        Score: {d.current_risk_score}
-                      </span>
-                    )}
-                    <StatusBadge status={d.status} />
-                    <span className="text-xs text-text-secondary">{formatDate(d.created_at)}</span>
-                  </div>
-                </div>
-              </Card>
-            </Link>
+                </Card>
+              </Link>
+              <DeleteButton dossierId={d.id} />
+            </div>
           ))}
         </div>
       )}
     </>
+  );
+}
+
+function DeleteButton({ dossierId }: { dossierId: string }) {
+  const deleteMutation = useDeleteDossier();
+
+  function handleDelete(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm("¿Eliminar este expediente? Esta accion no se puede deshacer.")) {
+      deleteMutation.mutate(dossierId);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleDelete}
+      className="p-2 text-text-secondary hover:text-danger hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+      title="Eliminar expediente"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
   );
 }

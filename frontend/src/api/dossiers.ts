@@ -27,6 +27,10 @@ export async function updateDossierStatus(
   return data;
 }
 
+export async function deleteDossier(id: string): Promise<void> {
+  await api.delete(`/dossiers/${id}`);
+}
+
 export async function getDossierStats(): Promise<Record<string, number>> {
   const { data } = await api.get<Record<string, number>>("/dossiers/stats");
   return data;
