@@ -155,6 +155,62 @@ async def add_shareholder(
     return sh
 
 
+@router.delete("/{entity_id}", status_code=204)
+async def delete_entity(
+    entity_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    entity = await _get_entity_or_404(db, entity_id)
+    await log_action(
+        db,
+        action="entity.deleted",
+        entity_id=entity.id,
+        details={"rfc": entity.rfc},
+    )
+    await db.delete(entity)
+    await db.commit()
+
+
+@router.delete("/{entity_id}/representatives/{rep_id}", status_code=204)
+async def delete_representative(
+    entity_id: uuid.UUID,
+    rep_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_entity_or_404(db, entity_id)
+    rep = await db.get(LegalRepresentative, rep_id)
+    if not rep or rep.entity_id != entity_id:
+        raise HTTPException(status_code=404, detail="Representative not found")
+    await db.delete(rep)
+    await log_action(
+        db,
+        action="representative.deleted",
+        entity_id=entity_id,
+        details={"nombre": rep.nombre_completo},
+    )
+    await db.commit()
+
+
+@router.delete("/{entity_id}/shareholders/{sh_id}", status_code=204)
+async def delete_shareholder(
+    entity_id: uuid.UUID,
+    sh_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_entity_or_404(db, entity_id)
+    sh = await db.get(Shareholder, sh_id)
+    if not sh or sh.entity_id != entity_id:
+        raise HTTPException(status_code=404, detail="Shareholder not found")
+    await db.delete(sh)
+    await log_action(
+        db,
+        action="shareholder.deleted",
+        entity_id=entity_id,
+        details={"nombre": sh.nombre_completo},
+    )
+    await db.commit()
+
+
 async def _get_entity_or_404(db: AsyncSession, entity_id: uuid.UUID) -> LegalEntity:
     result = await db.execute(
         select(LegalEntity)

@@ -151,6 +151,22 @@ async def update_dossier_status(
     return await _get_dossier_or_404(db, dossier_id)
 
 
+@router.delete("/{dossier_id}", status_code=204)
+async def delete_dossier(
+    dossier_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    dossier = await _get_dossier_or_404(db, dossier_id)
+    await log_action(
+        db,
+        action="dossier.deleted",
+        dossier_id=dossier.id,
+        entity_id=dossier.entity_id,
+    )
+    await db.delete(dossier)
+    await db.commit()
+
+
 async def _get_dossier_or_404(db: AsyncSession, dossier_id: uuid.UUID) -> Dossier:
     result = await db.execute(
         select(Dossier)
