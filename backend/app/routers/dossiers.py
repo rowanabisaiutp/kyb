@@ -9,20 +9,42 @@ from sqlalchemy.orm import selectinload
 from app.dependencies import get_db
 from app.models.dossier import Dossier, DossierStatus
 from app.models.entity import LegalEntity
-from app.schemas.dossier import DossierCreate, DossierListResponse, DossierResponse, DossierStatusUpdate
+from app.schemas.dossier import (
+    DossierCreate,
+    DossierListResponse,
+    DossierResponse,
+    DossierStatusUpdate,
+)
 from app.services.audit_service import log_action
 
 router = APIRouter(prefix="/dossiers", tags=["dossiers"])
 
 VALID_TRANSITIONS: dict[str, set[str]] = {
     DossierStatus.DRAFT.value: {DossierStatus.IN_REVIEW.value},
-    DossierStatus.IN_REVIEW.value: {DossierStatus.APPROVED.value, DossierStatus.REJECTED.value, DossierStatus.NEEDS_UPDATE.value},
-    DossierStatus.SAFE.value: {DossierStatus.APPROVED.value, DossierStatus.NEEDS_UPDATE.value},
-    DossierStatus.REVIEW_REQUIRED.value: {DossierStatus.APPROVED.value, DossierStatus.REJECTED.value, DossierStatus.NEEDS_UPDATE.value},
-    DossierStatus.HIGH_RISK.value: {DossierStatus.REJECTED.value, DossierStatus.NEEDS_UPDATE.value},
+    DossierStatus.IN_REVIEW.value: {
+        DossierStatus.APPROVED.value,
+        DossierStatus.REJECTED.value,
+        DossierStatus.NEEDS_UPDATE.value,
+    },
+    DossierStatus.SAFE.value: {
+        DossierStatus.APPROVED.value,
+        DossierStatus.NEEDS_UPDATE.value,
+    },
+    DossierStatus.REVIEW_REQUIRED.value: {
+        DossierStatus.APPROVED.value,
+        DossierStatus.REJECTED.value,
+        DossierStatus.NEEDS_UPDATE.value,
+    },
+    DossierStatus.HIGH_RISK.value: {
+        DossierStatus.REJECTED.value,
+        DossierStatus.NEEDS_UPDATE.value,
+    },
     DossierStatus.NEEDS_UPDATE.value: {DossierStatus.IN_REVIEW.value},
     DossierStatus.APPROVED.value: {DossierStatus.NEEDS_UPDATE.value},
-    DossierStatus.REJECTED.value: {DossierStatus.IN_REVIEW.value, DossierStatus.NEEDS_UPDATE.value},
+    DossierStatus.REJECTED.value: {
+        DossierStatus.IN_REVIEW.value,
+        DossierStatus.NEEDS_UPDATE.value,
+    },
 }
 
 
@@ -67,7 +89,8 @@ async def list_dossiers(
         query = query.where(Dossier.status == status)
     if search:
         query = query.where(
-            LegalEntity.rfc.icontains(search) | LegalEntity.razon_social.icontains(search)
+            LegalEntity.rfc.icontains(search)
+            | LegalEntity.razon_social.icontains(search)
         )
     result = await db.execute(query)
     return result.scalars().all()
@@ -103,7 +126,9 @@ async def update_dossier_status(
 
     if payload.status == DossierStatus.APPROVED.value:
         if dossier.current_risk_classification == DossierStatus.HIGH_RISK.value:
-            raise HTTPException(status_code=400, detail="Cannot approve a high-risk dossier")
+            raise HTTPException(
+                status_code=400, detail="Cannot approve a high-risk dossier"
+            )
 
     old_status = dossier.status
     dossier.status = payload.status

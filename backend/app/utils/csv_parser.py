@@ -109,6 +109,7 @@ async def download_and_parse_csv(list_key: str) -> dict[str, list[dict]]:
 
 async def load_all_lists() -> dict[str, dict[str, list[dict]]]:
     import asyncio
+
     keys = list(SAT_LISTS.keys())
     results = await asyncio.gather(*[download_and_parse_csv(k) for k in keys])
     return dict(zip(keys, results))
@@ -120,12 +121,14 @@ def search_rfc(all_lists: dict[str, dict[str, list[dict]]], rfc: str) -> list[di
     for list_key, rfc_index in all_lists.items():
         config = SAT_LISTS[list_key]
         found = rfc in rfc_index
-        results.append({
-            "list_type": list_key,
-            "article": config["article"],
-            "description": config["description"],
-            "source_url": config["url"],
-            "found": found,
-            "details": rfc_index.get(rfc, []) if found else [],
-        })
+        results.append(
+            {
+                "list_type": list_key,
+                "article": config["article"],
+                "description": config["description"],
+                "source_url": config["url"],
+                "found": found,
+                "details": rfc_index.get(rfc, []) if found else [],
+            }
+        )
     return results

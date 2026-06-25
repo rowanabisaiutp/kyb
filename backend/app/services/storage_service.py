@@ -77,5 +77,5 @@ def validate_file(content_type: str, size: int) -> str | None:
     if content_type not in ALLOWED_MIME_TYPES:
         return f"Tipo de archivo no permitido: {content_type}. Permitidos: PDF, JPEG, PNG, WebP"
     if size > MAX_FILE_SIZE:
-        return f"Archivo demasiado grande: {size} bytes. Maximo: {MAX_FILE_SIZE // (1024*1024)} MB"
+        return f"Archivo demasiado grande: {size} bytes. Maximo: {MAX_FILE_SIZE // (1024 * 1024)} MB"
     return None

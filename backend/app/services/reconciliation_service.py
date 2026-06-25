@@ -69,9 +69,12 @@ def _compare_values(field: str, val_a: str | None, val_b: str | None) -> bool:
     if field == "razon_social":
         return business_names_match(val_a, val_b)
     if field == "domicilio":
-        return normalize_address(val_a) == normalize_address(val_b) or texts_match(val_a, val_b, threshold=0.7)
+        return normalize_address(val_a) == normalize_address(val_b) or texts_match(
+            val_a, val_b, threshold=0.7
+        )
     if field in ("fecha_emision", "fecha_constitucion"):
         from app.utils.date_utils import safe_parse_date
+
         date_a = safe_parse_date(val_a)
         date_b = safe_parse_date(val_b)
         if date_a and date_b:
@@ -88,7 +91,9 @@ async def run_reconciliation(
     documents: list[Document],
 ) -> list[ReconciliationResult]:
     await db.execute(
-        delete(ReconciliationResult).where(ReconciliationResult.dossier_id == dossier_id)
+        delete(ReconciliationResult).where(
+            ReconciliationResult.dossier_id == dossier_id
+        )
     )
 
     doc_by_type: dict[str, Document] = {}

@@ -20,7 +20,9 @@ from app.services.risk_engine import calculate_risk
 router = APIRouter(tags=["risk"])
 
 
-@router.post("/dossiers/{dossier_id}/risk-assessment", response_model=RiskAssessmentResponse)
+@router.post(
+    "/dossiers/{dossier_id}/risk-assessment", response_model=RiskAssessmentResponse
+)
 async def calculate_dossier_risk(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -49,7 +51,9 @@ async def calculate_dossier_risk(
     fiscal_checks = list(fiscal_result.scalars().all())
 
     recon_result = await db.execute(
-        select(ReconciliationResult).where(ReconciliationResult.dossier_id == dossier_id)
+        select(ReconciliationResult).where(
+            ReconciliationResult.dossier_id == dossier_id
+        )
     )
     reconciliation_results = list(recon_result.scalars().all())
 
@@ -106,7 +110,10 @@ async def calculate_dossier_risk(
     )
 
 
-@router.get("/dossiers/{dossier_id}/risk-assessments", response_model=list[RiskAssessmentResponse])
+@router.get(
+    "/dossiers/{dossier_id}/risk-assessments",
+    response_model=list[RiskAssessmentResponse],
+)
 async def list_risk_assessments(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -119,17 +126,25 @@ async def list_risk_assessments(
     records = result.scalars().all()
     return [
         RiskAssessmentResponse(
-            id=r.id, dossier_id=r.dossier_id, total_score=r.total_score,
-            classification=r.classification, factors=r.factors if isinstance(r.factors, list) else [],
+            id=r.id,
+            dossier_id=r.dossier_id,
+            total_score=r.total_score,
+            classification=r.classification,
+            factors=r.factors if isinstance(r.factors, list) else [],
             blocks_approval=r.blocks_approval,
-            suggested_actions=r.suggested_actions if isinstance(r.suggested_actions, list) else [],
+            suggested_actions=r.suggested_actions
+            if isinstance(r.suggested_actions, list)
+            else [],
             calculated_at=r.calculated_at,
         )
         for r in records
     ]
 
 
-@router.get("/dossiers/{dossier_id}/risk-assessment/latest", response_model=RiskAssessmentResponse | None)
+@router.get(
+    "/dossiers/{dossier_id}/risk-assessment/latest",
+    response_model=RiskAssessmentResponse | None,
+)
 async def get_latest_risk_assessment(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -144,9 +159,14 @@ async def get_latest_risk_assessment(
     if not r:
         return None
     return RiskAssessmentResponse(
-        id=r.id, dossier_id=r.dossier_id, total_score=r.total_score,
-        classification=r.classification, factors=r.factors if isinstance(r.factors, list) else [],
+        id=r.id,
+        dossier_id=r.dossier_id,
+        total_score=r.total_score,
+        classification=r.classification,
+        factors=r.factors if isinstance(r.factors, list) else [],
         blocks_approval=r.blocks_approval,
-        suggested_actions=r.suggested_actions if isinstance(r.suggested_actions, list) else [],
+        suggested_actions=r.suggested_actions
+        if isinstance(r.suggested_actions, list)
+        else [],
         calculated_at=r.calculated_at,
     )

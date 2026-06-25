@@ -15,6 +15,7 @@ def check_csf_current_month(documents: list[Document]) -> bool:
             fecha_str = doc.extracted_data.get("fecha_emision") or ""
             if fecha_str:
                 from app.utils.date_utils import safe_parse_date
+
                 fecha = safe_parse_date(fecha_str)
                 if fecha and is_current_month(fecha):
                     return True
@@ -34,7 +35,9 @@ def get_expired_documents(documents: list[Document]) -> list[Document]:
     return [d for d in documents if check_document_expiration(d)]
 
 
-def needs_update(documents: list[Document], fiscal_checks: list[FiscalListCheck]) -> bool:
+def needs_update(
+    documents: list[Document], fiscal_checks: list[FiscalListCheck]
+) -> bool:
     if any(check_document_expiration(d) for d in documents):
         return True
     if not check_csf_current_month(documents):

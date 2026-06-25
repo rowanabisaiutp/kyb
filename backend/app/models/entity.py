@@ -11,7 +11,9 @@ from app.models.base import Base, TimestampMixin, UUIDMixin
 class LegalEntity(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "legal_entities"
 
-    rfc: Mapped[str] = mapped_column(String(13), unique=True, nullable=False, index=True)
+    rfc: Mapped[str] = mapped_column(
+        String(13), unique=True, nullable=False, index=True
+    )
     razon_social: Mapped[str] = mapped_column(String(500), nullable=False)
     nombre_comercial: Mapped[str | None] = mapped_column(String(500))
     domicilio_fiscal: Mapped[str | None] = mapped_column()
@@ -32,7 +34,9 @@ class LegalEntity(UUIDMixin, TimestampMixin, Base):
 class LegalRepresentative(UUIDMixin, Base):
     __tablename__ = "legal_representatives"
 
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("legal_entities.id", ondelete="CASCADE"), nullable=False)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("legal_entities.id", ondelete="CASCADE"), nullable=False
+    )
     nombre_completo: Mapped[str] = mapped_column(String(500), nullable=False)
     curp: Mapped[str | None] = mapped_column(String(18))
     rfc_persona_fisica: Mapped[str | None] = mapped_column(String(13))
@@ -48,7 +52,9 @@ class LegalRepresentative(UUIDMixin, Base):
 class Shareholder(UUIDMixin, Base):
     __tablename__ = "shareholders"
 
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("legal_entities.id", ondelete="CASCADE"), nullable=False)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("legal_entities.id", ondelete="CASCADE"), nullable=False
+    )
     nombre_completo: Mapped[str] = mapped_column(String(500), nullable=False)
     rfc: Mapped[str | None] = mapped_column(String(13))
     porcentaje_participacion: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))

@@ -6,7 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db
 from app.models.dossier import Dossier
-from app.schemas.document import DocumentListResponse, DocumentResponse, MissingDocumentsResponse
+from app.schemas.document import (
+    DocumentListResponse,
+    DocumentResponse,
+    MissingDocumentsResponse,
+)
 from app.services import document_service
 from app.services.extraction_service import extract_document_data
 from app.services.storage_service import get_presigned_url
@@ -16,7 +20,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["documents"])
 
 
-@router.post("/dossiers/{dossier_id}/documents", response_model=DocumentResponse, status_code=201)
+@router.post(
+    "/dossiers/{dossier_id}/documents", response_model=DocumentResponse, status_code=201
+)
 async def upload_document(
     dossier_id: uuid.UUID,
     file: UploadFile = File(...),
@@ -58,7 +64,9 @@ async def upload_document(
     return doc
 
 
-@router.get("/dossiers/{dossier_id}/documents", response_model=list[DocumentListResponse])
+@router.get(
+    "/dossiers/{dossier_id}/documents", response_model=list[DocumentListResponse]
+)
 async def list_documents(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -66,7 +74,10 @@ async def list_documents(
     return await document_service.list_documents(db, dossier_id)
 
 
-@router.get("/dossiers/{dossier_id}/documents/checklist", response_model=MissingDocumentsResponse)
+@router.get(
+    "/dossiers/{dossier_id}/documents/checklist",
+    response_model=MissingDocumentsResponse,
+)
 async def document_checklist(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -100,7 +111,9 @@ async def download_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     if not doc.file_key:
-        raise HTTPException(status_code=404, detail="No file associated with this document")
+        raise HTTPException(
+            status_code=404, detail="No file associated with this document"
+        )
 
     url = await get_presigned_url(doc.file_key)
     if not url:
@@ -124,7 +137,9 @@ async def re_extract_document(
 
     client = _get_s3_client()
     if not client:
-        raise HTTPException(status_code=503, detail="Storage unavailable for re-extraction")
+        raise HTTPException(
+            status_code=503, detail="Storage unavailable for re-extraction"
+        )
 
     response = client.get_object(Bucket=settings.BUCKET_NAME, Key=doc.file_key)
     file_data = response["Body"].read()

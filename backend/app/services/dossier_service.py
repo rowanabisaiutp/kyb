@@ -11,9 +11,14 @@ from app.services.document_service import list_documents
 from app.services.validity_service import needs_update
 
 
-async def check_and_update_validity(db: AsyncSession, dossier_id: uuid.UUID) -> str | None:
+async def check_and_update_validity(
+    db: AsyncSession, dossier_id: uuid.UUID
+) -> str | None:
     dossier = await db.get(Dossier, dossier_id)
-    if not dossier or dossier.status in (DossierStatus.DRAFT.value, DossierStatus.REJECTED.value):
+    if not dossier or dossier.status in (
+        DossierStatus.DRAFT.value,
+        DossierStatus.REJECTED.value,
+    ):
         return None
 
     documents = await list_documents(db, dossier_id)
@@ -27,7 +32,9 @@ async def check_and_update_validity(db: AsyncSession, dossier_id: uuid.UUID) -> 
         if old_status != DossierStatus.NEEDS_UPDATE.value:
             dossier.status = DossierStatus.NEEDS_UPDATE.value
             await log_action(
-                db, action="dossier.auto_needs_update", dossier_id=dossier_id,
+                db,
+                action="dossier.auto_needs_update",
+                dossier_id=dossier_id,
                 details={"from": old_status, "to": DossierStatus.NEEDS_UPDATE.value},
             )
             await db.flush()
@@ -59,7 +66,9 @@ async def approve_dossier(
     dossier.approved_at = datetime.now(timezone.utc)
 
     await log_action(
-        db, action="dossier.approved", dossier_id=dossier_id,
+        db,
+        action="dossier.approved",
+        dossier_id=dossier_id,
         details={"from": old_status, "approved_by": approved_by},
     )
     await db.flush()
@@ -78,7 +87,9 @@ async def reject_dossier(
     dossier.notes = reason or dossier.notes
 
     await log_action(
-        db, action="dossier.rejected", dossier_id=dossier_id,
+        db,
+        action="dossier.rejected",
+        dossier_id=dossier_id,
         details={"from": old_status, "reason": reason},
     )
     await db.flush()

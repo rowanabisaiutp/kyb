@@ -18,7 +18,9 @@ async def global_audit_log(
     action: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(AuditLog).offset(skip).limit(limit).order_by(AuditLog.created_at.desc())
+    query = (
+        select(AuditLog).offset(skip).limit(limit).order_by(AuditLog.created_at.desc())
+    )
     if action:
         query = query.where(AuditLog.action == action)
     result = await db.execute(query)

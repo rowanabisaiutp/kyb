@@ -36,7 +36,9 @@ async def upload_document(
         file_size=len(file_data),
         mime_type=content_type,
         fecha_emision=date.fromisoformat(fecha_emision) if fecha_emision else None,
-        fecha_vencimiento=date.fromisoformat(fecha_vencimiento) if fecha_vencimiento else None,
+        fecha_vencimiento=date.fromisoformat(fecha_vencimiento)
+        if fecha_vencimiento
+        else None,
     )
     db.add(doc)
     await db.flush()

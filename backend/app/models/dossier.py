@@ -25,7 +25,9 @@ class Dossier(UUIDMixin, TimestampMixin, Base):
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("legal_entities.id", ondelete="CASCADE"), nullable=False
     )
-    status: Mapped[str] = mapped_column(String(30), default=DossierStatus.DRAFT.value, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(30), default=DossierStatus.DRAFT.value, nullable=False
+    )
     current_risk_score: Mapped[int | None] = mapped_column()
     current_risk_classification: Mapped[str | None] = mapped_column(String(20))
     approved_by: Mapped[str | None] = mapped_column(String(200))
@@ -33,7 +35,15 @@ class Dossier(UUIDMixin, TimestampMixin, Base):
     notes: Mapped[str | None] = mapped_column()
 
     entity: Mapped["LegalEntity"] = relationship(back_populates="dossiers")  # noqa: F821
-    documents: Mapped[list["Document"]] = relationship(back_populates="dossier", cascade="all, delete-orphan")  # noqa: F821
-    fiscal_checks: Mapped[list["FiscalListCheck"]] = relationship(back_populates="dossier", cascade="all, delete-orphan")  # noqa: F821
-    risk_assessments: Mapped[list["RiskAssessment"]] = relationship(back_populates="dossier", cascade="all, delete-orphan")  # noqa: F821
-    reconciliation_results: Mapped[list["ReconciliationResult"]] = relationship(back_populates="dossier", cascade="all, delete-orphan")  # noqa: F821
+    documents: Mapped[list["Document"]] = relationship(
+        back_populates="dossier", cascade="all, delete-orphan"
+    )  # noqa: F821
+    fiscal_checks: Mapped[list["FiscalListCheck"]] = relationship(
+        back_populates="dossier", cascade="all, delete-orphan"
+    )  # noqa: F821
+    risk_assessments: Mapped[list["RiskAssessment"]] = relationship(
+        back_populates="dossier", cascade="all, delete-orphan"
+    )  # noqa: F821
+    reconciliation_results: Mapped[list["ReconciliationResult"]] = relationship(
+        back_populates="dossier", cascade="all, delete-orphan"
+    )  # noqa: F821

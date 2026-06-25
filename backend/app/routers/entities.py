@@ -26,11 +26,17 @@ router = APIRouter(prefix="/entities", tags=["entities"])
 @router.post("", response_model=EntityResponse, status_code=201)
 async def create_entity(payload: EntityCreate, db: AsyncSession = Depends(get_db)):
     if not is_valid_rfc(payload.rfc):
-        raise HTTPException(status_code=400, detail=f"RFC format invalid: {payload.rfc}")
+        raise HTTPException(
+            status_code=400, detail=f"RFC format invalid: {payload.rfc}"
+        )
 
-    existing = await db.execute(select(LegalEntity).where(LegalEntity.rfc == payload.rfc))
+    existing = await db.execute(
+        select(LegalEntity).where(LegalEntity.rfc == payload.rfc)
+    )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail=f"Entity with RFC {payload.rfc} already exists")
+        raise HTTPException(
+            status_code=409, detail=f"Entity with RFC {payload.rfc} already exists"
+        )
 
     entity = LegalEntity(
         rfc=payload.rfc.upper().strip(),
@@ -50,7 +56,9 @@ async def create_entity(payload: EntityCreate, db: AsyncSession = Depends(get_db
     for sh in payload.shareholders:
         db.add(Shareholder(entity_id=entity.id, **sh.model_dump()))
 
-    await log_action(db, action="entity.created", entity_id=entity.id, details={"rfc": entity.rfc})
+    await log_action(
+        db, action="entity.created", entity_id=entity.id, details={"rfc": entity.rfc}
+    )
     await db.commit()
 
     return await _get_entity_or_404(db, entity.id)
@@ -63,10 +71,16 @@ async def list_entities(
     search: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(LegalEntity).offset(skip).limit(limit).order_by(LegalEntity.created_at.desc())
+    query = (
+        select(LegalEntity)
+        .offset(skip)
+        .limit(limit)
+        .order_by(LegalEntity.created_at.desc())
+    )
     if search:
         query = query.where(
-            LegalEntity.rfc.icontains(search) | LegalEntity.razon_social.icontains(search)
+            LegalEntity.rfc.icontains(search)
+            | LegalEntity.razon_social.icontains(search)
         )
     result = await db.execute(query)
     return result.scalars().all()
@@ -88,12 +102,18 @@ async def update_entity(
     for field, value in update_data.items():
         setattr(entity, field, value)
 
-    await log_action(db, action="entity.updated", entity_id=entity.id, details=update_data)
+    await log_action(
+        db, action="entity.updated", entity_id=entity.id, details=update_data
+    )
     await db.commit()
     return await _get_entity_or_404(db, entity_id)
 
 
-@router.post("/{entity_id}/representatives", response_model=LegalRepresentativeResponse, status_code=201)
+@router.post(
+    "/{entity_id}/representatives",
+    response_model=LegalRepresentativeResponse,
+    status_code=201,
+)
 async def add_representative(
     entity_id: uuid.UUID,
     payload: LegalRepresentativeCreate,
@@ -102,13 +122,20 @@ async def add_representative(
     await _get_entity_or_404(db, entity_id)
     rep = LegalRepresentative(entity_id=entity_id, **payload.model_dump())
     db.add(rep)
-    await log_action(db, action="representative.added", entity_id=entity_id, details={"nombre": rep.nombre_completo})
+    await log_action(
+        db,
+        action="representative.added",
+        entity_id=entity_id,
+        details={"nombre": rep.nombre_completo},
+    )
     await db.commit()
     await db.refresh(rep)
     return rep
 
 
-@router.post("/{entity_id}/shareholders", response_model=ShareholderResponse, status_code=201)
+@router.post(
+    "/{entity_id}/shareholders", response_model=ShareholderResponse, status_code=201
+)
 async def add_shareholder(
     entity_id: uuid.UUID,
     payload: ShareholderCreate,
@@ -117,7 +144,12 @@ async def add_shareholder(
     await _get_entity_or_404(db, entity_id)
     sh = Shareholder(entity_id=entity_id, **payload.model_dump())
     db.add(sh)
-    await log_action(db, action="shareholder.added", entity_id=entity_id, details={"nombre": sh.nombre_completo})
+    await log_action(
+        db,
+        action="shareholder.added",
+        entity_id=entity_id,
+        details={"nombre": sh.nombre_completo},
+    )
     await db.commit()
     await db.refresh(sh)
     return sh
@@ -127,7 +159,10 @@ async def _get_entity_or_404(db: AsyncSession, entity_id: uuid.UUID) -> LegalEnt
     result = await db.execute(
         select(LegalEntity)
         .where(LegalEntity.id == entity_id)
-        .options(selectinload(LegalEntity.representatives), selectinload(LegalEntity.shareholders))
+        .options(
+            selectinload(LegalEntity.representatives),
+            selectinload(LegalEntity.shareholders),
+        )
     )
     entity = result.scalar_one_or_none()
     if not entity:

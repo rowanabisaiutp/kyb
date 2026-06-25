@@ -8,7 +8,11 @@ from app.dependencies import get_db
 from app.models.dossier import Dossier
 from app.models.entity import LegalEntity
 from app.models.fiscal_check import FiscalListCheck
-from app.schemas.fiscal import FiscalCheckResponse, FiscalCheckSummary, FiscalListsStatus
+from app.schemas.fiscal import (
+    FiscalCheckResponse,
+    FiscalCheckSummary,
+    FiscalListsStatus,
+)
 from app.services.fiscal_service import check_rfc_in_lists, get_lists_status
 
 router = APIRouter(tags=["fiscal"])
@@ -41,7 +45,9 @@ async def run_fiscal_check(
     )
 
 
-@router.get("/dossiers/{dossier_id}/fiscal-checks", response_model=list[FiscalCheckResponse])
+@router.get(
+    "/dossiers/{dossier_id}/fiscal-checks", response_model=list[FiscalCheckResponse]
+)
 async def list_fiscal_checks(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

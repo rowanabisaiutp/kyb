@@ -7,14 +7,22 @@ from sqlalchemy.orm import selectinload
 from app.dependencies import get_db
 from app.models.dossier import Dossier
 from app.models.entity import LegalEntity
-from app.schemas.reconciliation import ReconciliationResultResponse, ReconciliationSummary
+from app.schemas.reconciliation import (
+    ReconciliationResultResponse,
+    ReconciliationSummary,
+)
 from app.services.document_service import list_documents
-from app.services.reconciliation_service import get_reconciliation_results, run_reconciliation
+from app.services.reconciliation_service import (
+    get_reconciliation_results,
+    run_reconciliation,
+)
 
 router = APIRouter(tags=["reconciliation"])
 
 
-@router.post("/dossiers/{dossier_id}/reconciliation", response_model=ReconciliationSummary)
+@router.post(
+    "/dossiers/{dossier_id}/reconciliation", response_model=ReconciliationSummary
+)
 async def run_dossier_reconciliation(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -24,6 +32,7 @@ async def run_dossier_reconciliation(
         raise HTTPException(status_code=404, detail="Dossier not found")
 
     from sqlalchemy import select
+
     result = await db.execute(
         select(LegalEntity)
         .where(LegalEntity.id == dossier.entity_id)
@@ -56,7 +65,10 @@ async def run_dossier_reconciliation(
     )
 
 
-@router.get("/dossiers/{dossier_id}/reconciliation", response_model=list[ReconciliationResultResponse])
+@router.get(
+    "/dossiers/{dossier_id}/reconciliation",
+    response_model=list[ReconciliationResultResponse],
+)
 async def get_dossier_reconciliation(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

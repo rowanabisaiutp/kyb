@@ -85,7 +85,9 @@ async def extract_document_data(
         document.extraction_status = ExtractionStatus.COMPLETED.value
         await db.flush()
         await log_action(
-            db, action="extraction.completed", dossier_id=document.dossier_id,
+            db,
+            action="extraction.completed",
+            dossier_id=document.dossier_id,
             details={
                 "document_id": str(document.id),
                 "document_type": document.document_type,
@@ -143,16 +145,24 @@ async def _extract_with_anthropic(document: Document, file_data: bytes) -> dict 
         message = client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=2048,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "document" if media_type == "application/pdf" else "image",
-                        "source": {"type": "base64", "media_type": media_type, "data": b64_data},
-                    },
-                    {"type": "text", "text": prompt},
-                ],
-            }],
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "document"
+                            if media_type == "application/pdf"
+                            else "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": b64_data,
+                            },
+                        },
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ],
         )
 
         return _parse_json_response(message.content[0].text.strip())
