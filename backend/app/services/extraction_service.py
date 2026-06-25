@@ -111,7 +111,7 @@ async def _extract_with_gemini(document: Document, file_data: bytes) -> dict | N
         mime = document.mime_type or "application/pdf"
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-lite",
             contents=[
                 genai.types.Part.from_bytes(data=file_data, mime_type=mime),
                 prompt,
@@ -218,7 +218,7 @@ async def classify_document(file_data: bytes, mime_type: str) -> dict | None:
 
         client = genai.Client(api_key=settings.GEMINI_API_KEY)
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-lite",
             contents=[
                 genai.types.Part.from_bytes(data=file_data, mime_type=mime_type),
                 CLASSIFY_PROMPT,
@@ -249,7 +249,7 @@ async def generate_dossier_summary(dossier_data: dict) -> dict | None:
         context = json.dumps(dossier_data, ensure_ascii=False, default=str)
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-lite",
             contents=[f"{SUMMARY_PROMPT}\n\nDatos del expediente:\n{context}"],
         )
         return _parse_json_response(response.text)
