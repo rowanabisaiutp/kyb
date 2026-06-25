@@ -235,7 +235,7 @@ SUMMARY_PROMPT = (
     "Genera un resumen ejecutivo en español (maximo 3 oraciones) del estado de este expediente KYB. "
     "Incluye: nombre de la empresa, estado en listas fiscales, documentos faltantes, "
     "discrepancias encontradas, y tu recomendacion (aprobar, revisar, o rechazar). "
-    "Responde UNICAMENTE con un JSON: {\"resumen\": \"<texto>\", \"recomendacion\": \"<aprobar|revisar|rechazar>\"}"
+    'Responde UNICAMENTE con un JSON: {"resumen": "<texto>", "recomendacion": "<aprobar|revisar|rechazar>"}'
 )
 
 

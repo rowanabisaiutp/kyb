@@ -169,5 +169,7 @@ async def classify_uploaded_document(
     mime = file.content_type or "application/pdf"
     result = await classify_document(file_data, mime)
     if not result:
-        raise HTTPException(status_code=503, detail="Classification service unavailable")
+        raise HTTPException(
+            status_code=503, detail="Classification service unavailable"
+        )
     return result
