@@ -7,6 +7,87 @@ Plataforma web KYB (Know Your Business) para agencias aduanales mexicanas. Deter
 
 ---
 
+## Requisitos de la Prueba Tecnica
+
+### 1. Expediente KYB
+
+| Requisito | Estado | Implementacion |
+|-----------|:---:|---|
+| Crear expediente KYB | Hecho | `POST /api/v1/dossiers` → modelo Dossier vinculado a LegalEntity |
+| Cargar documentos con metadata auditable | Hecho | Upload con validacion MIME/tamano, storage S3, audit log automatico |
+| Validar documentos, vigencias y datos obligatorios | Hecho | `validity_service.py` — 3 triggers de `needs_update` + checklist 5 docs |
+| Consultar listas fiscales publicas del SAT | Hecho | 9 CSVs reales descargados del SAT, busqueda O(1) por RFC |
+| Conciliar datos entre documentos | Hecho | Cruce de RFC, razon social, domicilio, rep legal, fechas |
+| Calcular score de riesgo explicable | Hecho | Funcion pura con 30+ reglas, determinístico y testeable |
+| Clasificar safe / review_required / high_risk | Hecho | `classify()`: safe (<20), review_required (20-49), high_risk (>=50 o bloqueante) |
+| Bloquear aprobacion con riesgo critico | Hecho | high_risk no puede aprobarse, validado en transiciones de estado |
+| Registrar evidencia y audit log | Hecho | `audit_service.log_action()` en cada operacion del expediente |
+
+### 2. Documentos del Expediente (Regla 1.4.14)
+
+| Documento | Tipo en sistema | Riesgo si falta |
+|-----------|----------------|:---:|
+| Acta constitutiva | `acta_constitutiva` | +15 |
+| Identificacion del representante | `identificacion_representante` | +15 |
+| Poder de representacion | `poder_representacion` | Opcional |
+| Comprobante de domicilio | `comprobante_domicilio` | +10 |
+| Constancia de situacion fiscal | `constancia_situacion_fiscal` | +20 |
+| Manifestacion bajo protesta | `manifestacion_protesta` | +10 |
+| RFC | Campo obligatorio en LegalEntity | +25 bloqueante |
+| Socios/accionistas | Modelo Shareholder | +10 |
+
+### 3. Score de Riesgo
+
+Motor determinístico, explicable y testeable (`risk_engine.py`). Cada factor muestra puntos, descripcion y si bloquea:
+
+| Categoria | Factores | Puntos |
+|-----------|---------|--------|
+| Fiscal | EFOS Definitivo, No Localizado, CSD sin efectos, Firmes, 69-B Bis, etc. | 5-50 (varios bloqueantes) |
+| Documentos | Faltantes, vencidos, CSF fuera de mes | 10-20 |
+| Conciliacion | Discrepancia RFC (bloqueante), razon social, domicilio, rep legal, fechas | 5-35 |
+| Completitud | Sin RFC (bloqueante), sin rep legal, sin socios | 10-25 |
+
+### 4. Listas Fiscales (Datos Reales, Sin Mocks)
+
+| Articulo | Listas | Fuente |
+|----------|--------|--------|
+| Art. 69 CFF (excepto fr. VI) | 6 listados: Cancelados, Exigibles, Firmes, No localizados, Sentencias, CSD sin efectos | CSVs publicos del SAT |
+| Art. 69-B CFF | Listado completo EFOS (Definitivo/Presunto/Desvirtuado/Sentencia) | CSV publico del SAT |
+| Art. 69-B Bis CFF | Transmision indebida de perdidas | CSV publico del SAT |
+| Art. 49 Bis CFF | Fuente: listado 69-B (unica base publica, justificado en SAT_FUENTES.md) | CSV publico del SAT |
+
+Cada consulta guarda: fuente (`source_url`), fecha/hora (`checked_at`), RFC buscado, resultado (`found`), referencia al listado (`list_reference`).
+
+### 5. Conciliacion de Datos
+
+| Campo | Fuentes comparadas | Severidad |
+|-------|-------------------|-----------|
+| RFC | CSF + Acta + Formulario | critical (+35 bloqueante) |
+| Razon social | CSF + Acta + Formulario | warning (+30) |
+| Domicilio | CSF + Comprobante + Formulario | warning (+15) |
+| Representante legal | Poder + ID + Formulario | warning (+25) |
+| Fechas | CSF + Comprobante + Acta | info (+5-10) |
+
+### 6. Vigencias
+
+El expediente pasa a `needs_update` automaticamente cuando:
+- Un documento vence (`fecha_vencimiento < hoy`)
+- La CSF no es del mes vigente
+- La revision fiscal tiene mas de 3 meses
+- Scheduler automatico cada hora (`main.py`)
+
+### 7. Fuentes Oficiales
+
+| Fuente | Uso |
+|--------|-----|
+| [Regla 1.4.14 RGCE 2026](https://www.sat.gob.mx/minisitio/NormatividadRMFyRGCE/documentos2026/rgce/rgce/1raRMRGCEpara2026.pdf) | Marco normativo del expediente KYB |
+| [Datos abiertos SAT](https://www.sat.gob.mx/minisitio/DatosAbiertos/contribuyentes_publicados.html) | CSVs descargados para consulta fiscal |
+| [Contribuyentes incumplidos](https://wwwmat.sat.gob.mx/consultas/11981/consulta-la-relacion-de-contribuyentes-incumplidos) | Referencia Art. 69 CFF |
+| [Operaciones presuntamente inexistentes](https://wwwmat.sat.gob.mx/consultas/76674/consulta-la-relacion-de-contribuyentes-con-operaciones-presuntamente-inexistentes) | Referencia Art. 69-B CFF |
+| [Portal SAT PLD](https://sppld.sat.gob.mx/pld/interiores/obligaciones.html) | Obligaciones PLD/FT (informativo, sin datos descargables) |
+
+---
+
 ## Stack Tecnologico
 
 | Capa | Tecnologia |
@@ -15,99 +96,9 @@ Plataforma web KYB (Know Your Business) para agencias aduanales mexicanas. Deter
 | Backend | FastAPI + SQLAlchemy Async + Pydantic v2 |
 | Base de Datos | PostgreSQL (Fly Postgres) |
 | AI Multi-modelo | Gemini 2.0 Flash → Groq Llama 3.3 → Claude (fallback automatico) |
-| Listas Fiscales | 8 CSVs reales del SAT (500K+ RFCs) |
+| Listas Fiscales | 9 CSVs reales del SAT (500K+ RFCs) |
 | Deploy | Fly.io (monolito, Docker multi-stage) |
 | CI | GitHub Actions (lint, tests, build) |
-
----
-
-## Funcionalidades
-
-### Proceso KYB Guiado (Wizard de 6 Pasos)
-
-La plataforma guia al usuario paso a paso a traves del proceso KYB:
-
-1. **Datos de la Empresa** — RFC y razon social para iniciar, datos adicionales opcionales
-2. **Documentos** — Carga de documentos con clasificacion automatica por AI y extraccion de datos
-3. **Verificacion SAT** — Consulta automatica del RFC en 8 listas fiscales publicas reales
-4. **Conciliacion** — Comparacion automatica de datos entre documentos y formulario
-5. **Evaluacion de Riesgo** — Score determinístico con 30+ reglas explicables
-6. **Decision Final** — Resumen ejecutivo AI + aprobacion/rechazo con bloqueo si hay riesgo critico
-
-### AI Multi-Modelo con Fallback
-
-La plataforma usa 3 proveedores de AI con fallback automatico. Si uno falla por quota o error, el siguiente responde sin que el usuario lo note:
-
-- **Gemini 2.0 Flash** (Google) — principal, vision + texto
-- **Groq Llama 3.3 70B** — fallback rapido, alto limite gratis
-- **Claude Sonnet** (Anthropic) — fallback final
-
-Funciones AI:
-- **Clasificacion automatica de documentos** — sube un PDF y la AI detecta si es CSF, acta, INE, comprobante, etc.
-- **Extraccion de datos** — AI lee el documento y extrae RFC, razon social, domicilio, fechas, socios
-- **Resumen ejecutivo** — AI genera un parrafo explicando el estado del expediente y su recomendacion
-
-### Listas Fiscales del SAT (Datos Reales)
-
-Consulta directa a los CSVs publicos del SAT — no mocks:
-
-| Lista | Articulo | RFCs |
-|-------|----------|------|
-| Cancelados | Art. 69 CFF | ~181,000 |
-| Exigibles | Art. 69 CFF | ~5,800 |
-| Firmes | Art. 69 CFF | ~258,000 |
-| No Localizados | Art. 69 CFF | ~53,000 |
-| Sentencias | Art. 69 CFF | ~572 |
-| CSD Sin Efectos | Art. 69 CFF | ~57,500 |
-| EFOS | Art. 69-B CFF | ~14,300 |
-| Perdidas Indebidas | Art. 69-B Bis CFF | ~3 |
-
-Cada consulta guarda: fuente, fecha/hora, RFC buscado, resultado y referencia al listado.
-
-### Fuentes Oficiales
-
-| Fuente | Uso en la plataforma |
-|--------|---------------------|
-| [Regla 1.4.14 RGCE 2026](https://www.sat.gob.mx/minisitio/NormatividadRMFyRGCE/documentos2026/rgce/rgce/1raRMRGCEpara2026.pdf) | Marco normativo del expediente KYB |
-| [Datos abiertos SAT](https://www.sat.gob.mx/minisitio/DatosAbiertos/contribuyentes_publicados.html) | CSVs descargados para consulta de listas fiscales |
-| [Contribuyentes incumplidos](https://wwwmat.sat.gob.mx/consultas/11981/consulta-la-relacion-de-contribuyentes-incumplidos) | Referencia Art. 69 CFF (6 listados) |
-| [Operaciones presuntamente inexistentes](https://wwwmat.sat.gob.mx/consultas/76674/consulta-la-relacion-de-contribuyentes-con-operaciones-presuntamente-inexistentes) | Referencia Art. 69-B CFF (EFOS) |
-| [Portal SAT PLD](https://sppld.sat.gob.mx/pld/interiores/obligaciones.html) | Obligaciones PLD/FT: identificacion de clientes y custodia de registros (no ofrece datos descargables; la plataforma implementa estas obligaciones via expediente KYB y audit log) |
-
-### Score de Riesgo Explicable
-
-Motor determinístico con 30+ reglas. Cada factor muestra puntos, descripcion y si bloquea la aprobacion:
-
-| Categoria | Ejemplo | Puntos |
-|-----------|---------|--------|
-| Fiscal | EFOS Definitivo (Art. 69-B) | +50 (bloqueante) |
-| Fiscal | No Localizado (Art. 69) | +50 (bloqueante) |
-| Documentos | CSF faltante | +20 |
-| Documentos | Comprobante vencido | +20 |
-| Conciliacion | Discrepancia de RFC | +35 (bloqueante) |
-| Conciliacion | Discrepancia razon social | +30 |
-| Completitud | Sin representante legal | +20 |
-
-Clasificacion: `safe` (<20) · `review_required` (20-49) · `high_risk` (>=50 o bloqueante)
-
-### Conciliacion de Datos
-
-Compara automaticamente entre documentos y formulario:
-- RFC y razon social (CSF vs acta vs formulario)
-- Domicilio (CSF vs comprobante vs formulario)
-- Representante legal (poder vs ID vs formulario)
-- Fechas de emision y constitucion
-
-### Vigencias Automaticas
-
-Scheduler cada hora que marca expedientes como `needs_update` cuando:
-- Un documento vence
-- La CSF no es del mes vigente
-- La revision fiscal tiene mas de 3 meses
-
-### Audit Log
-
-Registro completo de todas las acciones con timeline visual: creacion, uploads, extracciones AI, consultas SAT, calculos de riesgo, aprobaciones/rechazos.
 
 ---
 
@@ -121,6 +112,33 @@ Registro completo de todas las acciones con timeline visual: creacion, uploads, 
                 ├── AI (Gemini → Groq → Claude, fallback)
                 └── SAT CSVs (datos reales, en memoria)
 ```
+
+Documentacion detallada de la estructura de archivos:
+- [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md) — modelos, servicios, routers, flujo del score
+- [frontend/ARCHITECTURE.md](frontend/ARCHITECTURE.md) — componentes, hooks, wizard, rutas
+
+---
+
+## Proceso KYB (Wizard de 6 Pasos)
+
+1. **Datos de la Empresa** — RFC y razon social para iniciar, datos adicionales opcionales
+2. **Documentos** — Carga con clasificacion automatica por AI y extraccion de datos
+3. **Verificacion SAT** — Consulta automatica del RFC en 9 listas fiscales publicas reales
+4. **Conciliacion** — Comparacion automatica de datos entre documentos y formulario
+5. **Evaluacion de Riesgo** — Score determinístico con 30+ reglas explicables
+6. **Decision Final** — Resumen ejecutivo AI + aprobacion/rechazo con bloqueo si hay riesgo critico
+
+---
+
+## AI Multi-Modelo con Fallback
+
+3 proveedores con fallback automatico. Si uno falla, el siguiente responde:
+
+- **Gemini 2.0 Flash** (Google) — principal, vision + texto
+- **Groq Llama 3.3 70B** — fallback rapido
+- **Claude Sonnet** (Anthropic) — fallback final
+
+Funciones: clasificacion de documentos, extraccion de datos, resumen ejecutivo.
 
 ---
 
@@ -160,10 +178,10 @@ docker run -d -p 8080:8080 -e GEMINI_API_KEY=key -e GROQ_API_KEY=key kyb-platfor
 ## Tests
 
 ```bash
-# Backend unit tests
+# Backend (121 tests)
 cd backend && pytest tests/ --cov=app -q
 
-# Frontend unit + integration
+# Frontend (79 tests, 19 archivos)
 cd frontend && npx vitest run
 
 # E2E (Playwright)

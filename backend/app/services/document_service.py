@@ -24,10 +24,22 @@ async def upload_document(
     if validation_error:
         raise ValueError(validation_error)
 
+    valid_types = {e.value for e in DocumentType}
+    if document_type not in valid_types:
+        raise ValueError(f"Tipo de documento invalido: {document_type}")
+
     file_key = storage_service.generate_file_key(dossier_id, document_type, file_name)
     await storage_service.upload_file(file_key, file_data, content_type)
 
     from datetime import date
+
+    try:
+        fecha_em = date.fromisoformat(fecha_emision) if fecha_emision else None
+        fecha_venc = (
+            date.fromisoformat(fecha_vencimiento) if fecha_vencimiento else None
+        )
+    except ValueError as e:
+        raise ValueError(f"Formato de fecha invalido: {e}")
 
     doc = Document(
         dossier_id=dossier_id,
@@ -36,10 +48,8 @@ async def upload_document(
         file_key=file_key,
         file_size=len(file_data),
         mime_type=content_type,
-        fecha_emision=date.fromisoformat(fecha_emision) if fecha_emision else None,
-        fecha_vencimiento=date.fromisoformat(fecha_vencimiento)
-        if fecha_vencimiento
-        else None,
+        fecha_emision=fecha_em,
+        fecha_vencimiento=fecha_venc,
     )
     db.add(doc)
     await db.flush()
@@ -77,12 +87,13 @@ async def delete_document(db: AsyncSession, document_id: uuid.UUID) -> bool:
     if not doc:
         return False
 
-    if doc.file_key:
-        await storage_service.delete_file(doc.file_key)
-
+    file_key_to_delete = doc.file_key
     dossier_id = doc.dossier_id
     await db.delete(doc)
     await db.flush()
+
+    if file_key_to_delete:
+        await storage_service.delete_file(file_key_to_delete)
 
     await log_action(
         db,

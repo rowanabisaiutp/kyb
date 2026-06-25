@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CheckCircle, FileText, Search, Shield, Sparkles, XCircle } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getDossierSummary, type DossierSummary } from "../../../api/ai";
 import type { Dossier } from "../../../types";
@@ -12,6 +12,7 @@ import { useDossierAuditLog } from "../../../hooks/useAuditLog";
 import { AuditTimeline } from "../../audit/AuditTimeline";
 import { Button } from "../../ui/Button";
 import { FadeIn } from "../../ui/FadeIn";
+import { SummaryCard } from "./SummaryCard";
 
 interface Props {
   dossier: Dossier;
@@ -55,6 +56,8 @@ export function StepDecision({ dossier }: Props) {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.detail ?? "Error al aprobar");
+      } else {
+        setError("Error de conexion. Intenta de nuevo.");
       }
     }
   }
@@ -70,6 +73,8 @@ export function StepDecision({ dossier }: Props) {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.detail ?? "Error al rechazar");
+      } else {
+        setError("Error de conexion. Intenta de nuevo.");
       }
     }
   }
@@ -102,13 +107,13 @@ export function StepDecision({ dossier }: Props) {
       ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <FadeIn delay={0}><SummaryCard icon={FileText} label="Documentos" value={`${checklist?.total_present ?? 0}/${checklist?.total_required ?? 5} cargados`}
+        <FadeIn delay={0}><SummaryCard label="Documentos" value={`${checklist?.total_present ?? 0}/${checklist?.total_required ?? 5} cargados`}
           ok={(checklist?.total_present ?? 0) >= (checklist?.total_required ?? 5)} /></FadeIn>
-        <FadeIn delay={80}><SummaryCard icon={Search} label="Listas SAT" value={fiscalMatches === 0 ? "RFC limpio" : `${fiscalMatches} hallazgos`}
+        <FadeIn delay={80}><SummaryCard label="Listas SAT" value={fiscalMatches === 0 ? "RFC limpio" : `${fiscalMatches} hallazgos`}
           ok={fiscalMatches === 0} /></FadeIn>
-        <FadeIn delay={160}><SummaryCard icon={Shield} label="Conciliacion" value={discrepancies === 0 ? "Sin discrepancias" : `${discrepancies} discrepancias`}
+        <FadeIn delay={160}><SummaryCard label="Conciliacion" value={discrepancies === 0 ? "Sin discrepancias" : `${discrepancies} discrepancias`}
           ok={discrepancies === 0} /></FadeIn>
-        <FadeIn delay={240}><SummaryCard icon={Shield} label="Riesgo"
+        <FadeIn delay={240}><SummaryCard label="Riesgo"
           value={assessment ? `${assessment.total_score} pts — ${assessment.classification}` : "Sin calcular"}
           ok={assessment?.classification === "safe"} /></FadeIn>
       </div>
@@ -154,18 +159,6 @@ export function StepDecision({ dossier }: Props) {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function SummaryCard({ label, value, ok }: { icon: typeof FileText; label: string; value: string; ok: boolean }) {
-  return (
-    <div className={`p-4 rounded-lg border ${ok ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}`}>
-      <div className="flex items-center gap-2 mb-1">
-        {ok ? <CheckCircle className="w-4 h-4 text-safe" /> : <XCircle className="w-4 h-4 text-warning" />}
-        <span className="text-sm font-medium text-text">{label}</span>
-      </div>
-      <p className="text-sm text-text-secondary">{value}</p>
     </div>
   );
 }

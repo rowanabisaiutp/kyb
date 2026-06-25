@@ -16,10 +16,6 @@ _fiscal_lists: dict[str, dict[str, list[dict]]] = {}
 _last_loaded: datetime | None = None
 
 
-def get_loaded_lists() -> dict[str, dict[str, list[dict]]]:
-    return _fiscal_lists
-
-
 def set_loaded_lists(lists: dict[str, dict[str, list[dict]]]) -> None:
     global _fiscal_lists, _last_loaded
     _fiscal_lists = lists

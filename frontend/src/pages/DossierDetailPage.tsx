@@ -20,7 +20,8 @@ export function DossierDetailPage() {
   const completion = useStepCompletion(id);
 
   const stepParam = searchParams.get("step");
-  const currentStep = stepParam !== null ? parseInt(stepParam, 10) : completion.activeStep;
+  const parsed = stepParam !== null ? parseInt(stepParam, 10) : NaN;
+  const currentStep = Number.isNaN(parsed) ? completion.activeStep : Math.max(0, Math.min(parsed, 5));
 
   function goToStep(step: number) {
     setSearchParams({ step: String(step) });

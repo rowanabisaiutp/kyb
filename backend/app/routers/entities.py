@@ -25,13 +25,14 @@ router = APIRouter(prefix="/entities", tags=["entities"])
 
 @router.post("", response_model=EntityResponse, status_code=201)
 async def create_entity(payload: EntityCreate, db: AsyncSession = Depends(get_db)):
-    if not is_valid_rfc(payload.rfc):
+    normalized_rfc = payload.rfc.upper().strip()
+    if not is_valid_rfc(normalized_rfc):
         raise HTTPException(
             status_code=400, detail=f"RFC format invalid: {payload.rfc}"
         )
 
     existing = await db.execute(
-        select(LegalEntity).where(LegalEntity.rfc == payload.rfc)
+        select(LegalEntity).where(LegalEntity.rfc == normalized_rfc)
     )
     if existing.scalar_one_or_none():
         raise HTTPException(
@@ -39,7 +40,7 @@ async def create_entity(payload: EntityCreate, db: AsyncSession = Depends(get_db
         )
 
     entity = LegalEntity(
-        rfc=payload.rfc.upper().strip(),
+        rfc=normalized_rfc,
         razon_social=payload.razon_social.strip(),
         nombre_comercial=payload.nombre_comercial,
         domicilio_fiscal=payload.domicilio_fiscal,

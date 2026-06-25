@@ -24,18 +24,8 @@ export async function uploadDocument(
   return data;
 }
 
-export async function getDocument(documentId: string): Promise<Document> {
-  const { data } = await api.get<Document>(`/documents/${documentId}`);
-  return data;
-}
-
 export async function deleteDocument(documentId: string): Promise<void> {
   await api.delete(`/documents/${documentId}`);
-}
-
-export async function getDocumentDownloadUrl(documentId: string): Promise<string> {
-  const { data } = await api.get<{ download_url: string }>(`/documents/${documentId}/download`);
-  return data.download_url;
 }
 
 export interface DocumentChecklist {

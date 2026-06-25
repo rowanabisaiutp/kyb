@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 interface FadeInProps {
   children: ReactNode;
@@ -9,7 +9,6 @@ interface FadeInProps {
 
 export function FadeIn({ children, className = "", delay = 0, duration = 300 }: FadeInProps) {
   const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), delay);
@@ -18,7 +17,6 @@ export function FadeIn({ children, className = "", delay = 0, duration = 300 }: 
 
   return (
     <div
-      ref={ref}
       className={className}
       style={{
         opacity: visible ? 1 : 0,

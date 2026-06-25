@@ -33,8 +33,10 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    asyncio.create_task(_load_fiscal_lists())       # Descarga 9 CSVs del SAT al iniciar.
-    validity_task = asyncio.create_task(_periodic_validity_check())  # Vigencias cada hora.
+    asyncio.create_task(_load_fiscal_lists())  # Descarga 9 CSVs del SAT al iniciar.
+    validity_task = asyncio.create_task(
+        _periodic_validity_check()
+    )  # Vigencias cada hora.
 
     yield
 

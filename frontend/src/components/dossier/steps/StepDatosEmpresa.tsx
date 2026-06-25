@@ -1,3 +1,4 @@
+import axios from "axios";
 import { type FormEvent, useState } from "react";
 import { updateEntity } from "../../../api/entities";
 import type { Dossier } from "../../../types";
@@ -20,6 +21,7 @@ export function StepDatosEmpresa({ dossier, onComplete }: Props) {
   });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -29,6 +31,7 @@ export function StepDatosEmpresa({ dossier, onComplete }: Props) {
     e.preventDefault();
     if (!entity) return;
     setLoading(true);
+    setError(null);
     try {
       await updateEntity(entity.id, {
         nombre_comercial: form.nombre_comercial || undefined,
@@ -39,8 +42,12 @@ export function StepDatosEmpresa({ dossier, onComplete }: Props) {
       });
       setSaved(true);
       onComplete();
-    } catch {
-      // error handled silently
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.detail ?? "Error al guardar los datos");
+      } else {
+        setError("Error de conexion. Intenta de nuevo.");
+      }
     } finally {
       setLoading(false);
     }
@@ -85,6 +92,7 @@ export function StepDatosEmpresa({ dossier, onComplete }: Props) {
         <div className="flex items-center gap-3">
           <Button type="submit" loading={loading}>Guardar Datos</Button>
           {saved && <span className="text-sm text-safe">Datos guardados correctamente</span>}
+          {error && <span className="text-sm text-danger">{error}</span>}
         </div>
       </form>
     </div>

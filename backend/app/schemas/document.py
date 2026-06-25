@@ -38,13 +38,6 @@ class DocumentListResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class DocumentChecklistItem(BaseModel):
-    document_type: str
-    label: str
-    present: bool
-    document_id: uuid.UUID | None = None
-
-
 class MissingDocumentsResponse(BaseModel):
     missing: list[str]
     total_required: int

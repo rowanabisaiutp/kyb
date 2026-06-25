@@ -1,6 +1,4 @@
 import uuid
-from datetime import datetime, timezone
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,57 +41,3 @@ async def check_and_update_validity(
             return DossierStatus.NEEDS_UPDATE.value
 
     return dossier.status
-
-
-# BLOQUEO: si classification == high_risk, no se puede aprobar. Lanza ValueError.
-async def approve_dossier(
-    db: AsyncSession, dossier_id: uuid.UUID, approved_by: str
-) -> Dossier:
-    dossier = await db.get(Dossier, dossier_id)
-    if not dossier:
-        raise ValueError("Dossier not found")
-
-    if dossier.current_risk_classification == DossierStatus.HIGH_RISK.value:
-        raise ValueError("No se puede aprobar un expediente de alto riesgo")
-
-    if dossier.status not in (
-        DossierStatus.IN_REVIEW.value,
-        DossierStatus.SAFE.value,
-        DossierStatus.REVIEW_REQUIRED.value,
-    ):
-        raise ValueError(f"No se puede aprobar desde el estado '{dossier.status}'")
-
-    old_status = dossier.status
-    dossier.status = DossierStatus.APPROVED.value
-    dossier.approved_by = approved_by
-    dossier.approved_at = datetime.now(timezone.utc)
-
-    await log_action(
-        db,
-        action="dossier.approved",
-        dossier_id=dossier_id,
-        details={"from": old_status, "approved_by": approved_by},
-    )
-    await db.flush()
-    return dossier
-
-
-async def reject_dossier(
-    db: AsyncSession, dossier_id: uuid.UUID, reason: str | None = None
-) -> Dossier:
-    dossier = await db.get(Dossier, dossier_id)
-    if not dossier:
-        raise ValueError("Dossier not found")
-
-    old_status = dossier.status
-    dossier.status = DossierStatus.REJECTED.value
-    dossier.notes = reason or dossier.notes
-
-    await log_action(
-        db,
-        action="dossier.rejected",
-        dossier_id=dossier_id,
-        details={"from": old_status, "reason": reason},
-    )
-    await db.flush()
-    return dossier

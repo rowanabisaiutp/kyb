@@ -12,8 +12,9 @@ from app.schemas.document import (
     MissingDocumentsResponse,
 )
 from app.services import document_service
-from app.services.extraction_service import classify_document, extract_document_data
-from app.services.storage_service import get_presigned_url
+from app.services.classification_service import classify_document
+from app.services.extraction_service import extract_document_data
+from app.services.storage_service import download_file, get_presigned_url
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +32,24 @@ async def upload_document(
     fecha_vencimiento: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.models.document import DocumentType
+
     dossier = await db.get(Dossier, dossier_id)
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier not found")
 
+    valid_types = {e.value for e in DocumentType}
+    if document_type not in valid_types:
+        raise HTTPException(
+            status_code=400, detail=f"Tipo de documento invalido: {document_type}"
+        )
+
+    max_size = 10 * 1024 * 1024
     file_data = await file.read()
+    if len(file_data) > max_size:
+        raise HTTPException(
+            status_code=413, detail="Archivo demasiado grande (max 10 MB)"
+        )
 
     try:
         doc = await document_service.upload_document(
@@ -60,6 +74,9 @@ async def upload_document(
         await db.refresh(doc)
     except Exception as e:
         logger.error("Extraction failed for document %s: %s", doc.id, e)
+        doc.extraction_status = "failed"
+        await db.commit()
+        await db.refresh(doc)
 
     return doc
 
@@ -132,21 +149,21 @@ async def re_extract_document(
     if not doc.file_key:
         raise HTTPException(status_code=400, detail="No file to extract from")
 
-    from app.services.storage_service import _get_s3_client
-    from app.config import settings
-
-    client = _get_s3_client()
-    if not client:
+    file_data = await download_file(doc.file_key)
+    if not file_data:
         raise HTTPException(
             status_code=503, detail="Storage unavailable for re-extraction"
         )
 
-    response = client.get_object(Bucket=settings.BUCKET_NAME, Key=doc.file_key)
-    file_data = response["Body"].read()
-
-    await extract_document_data(db, doc, file_data)
-    await db.commit()
-    await db.refresh(doc)
+    try:
+        await extract_document_data(db, doc, file_data)
+        await db.commit()
+        await db.refresh(doc)
+    except Exception as e:
+        logger.error("Re-extraction failed for document %s: %s", doc.id, e)
+        doc.extraction_status = "failed"
+        await db.commit()
+        await db.refresh(doc)
     return doc
 
 

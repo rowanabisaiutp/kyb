@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 import boto3
@@ -37,7 +38,8 @@ async def upload_file(file_key: str, file_data: bytes, content_type: str) -> boo
     if not client:
         return False
     try:
-        client.put_object(
+        await asyncio.to_thread(
+            client.put_object,
             Bucket=settings.BUCKET_NAME,
             Key=file_key,
             Body=file_data,
@@ -53,7 +55,8 @@ async def get_presigned_url(file_key: str, expires_in: int = 3600) -> str | None
     if not client:
         return None
     try:
-        return client.generate_presigned_url(
+        return await asyncio.to_thread(
+            client.generate_presigned_url,
             "get_object",
             Params={"Bucket": settings.BUCKET_NAME, "Key": file_key},
             ExpiresIn=expires_in,
@@ -67,10 +70,25 @@ async def delete_file(file_key: str) -> bool:
     if not client:
         return False
     try:
-        client.delete_object(Bucket=settings.BUCKET_NAME, Key=file_key)
+        await asyncio.to_thread(
+            client.delete_object, Bucket=settings.BUCKET_NAME, Key=file_key
+        )
         return True
     except ClientError:
         return False
+
+
+async def download_file(file_key: str) -> bytes | None:
+    client = _get_s3_client()
+    if not client:
+        return None
+    try:
+        response = await asyncio.to_thread(
+            client.get_object, Bucket=settings.BUCKET_NAME, Key=file_key
+        )
+        return response["Body"].read()
+    except ClientError:
+        return None
 
 
 def validate_file(content_type: str, size: int) -> str | None:

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { FiscalCheckResults } from "../../fiscal/FiscalCheckResults";
 import { useFiscalChecks, useRunFiscalCheck } from "../../../hooks/useFiscalCheck";
 import { LoadingSpinner } from "../../ui/LoadingSpinner";
@@ -10,12 +10,14 @@ interface Props {
 export function StepVerificacionSAT({ dossierId }: Props) {
   const { data: checks, isLoading } = useFiscalChecks(dossierId);
   const runCheck = useRunFiscalCheck(dossierId);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && (!checks || checks.length === 0) && !runCheck.isPending) {
+    if (!isLoading && !hasRun.current && (!checks || checks.length === 0) && !runCheck.isPending) {
+      hasRun.current = true;
       runCheck.mutate();
     }
-  }, [isLoading]);
+  }, [isLoading, checks, runCheck]);
 
   if (isLoading || runCheck.isPending) {
     return (

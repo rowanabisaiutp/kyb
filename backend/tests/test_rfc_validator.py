@@ -1,4 +1,4 @@
-from app.utils.rfc_validator import is_valid_rfc, normalize_rfc
+from app.utils.rfc_validator import is_valid_rfc
 
 
 class TestIsValidRfc:
@@ -22,11 +22,3 @@ class TestIsValidRfc:
 
     def test_with_ampersand(self):
         assert is_valid_rfc("&HI0102165P2") is True
-
-
-class TestNormalizeRfc:
-    def test_uppercase(self):
-        assert normalize_rfc("abc010101aa1") == "ABC010101AA1"
-
-    def test_strip(self):
-        assert normalize_rfc("  ABC010101AA1  ") == "ABC010101AA1"

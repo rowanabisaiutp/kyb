@@ -78,8 +78,6 @@ async def calculate_dossier_risk(
 
     dossier.current_risk_score = assessment.total_score
     dossier.current_risk_classification = assessment.classification
-    if assessment.classification != dossier.status:
-        dossier.status = assessment.classification
 
     await db.flush()
 
@@ -177,7 +175,7 @@ async def get_dossier_summary(
     dossier_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    from app.services.extraction_service import generate_dossier_summary
+    from app.services.summary_service import generate_dossier_summary
 
     dossier = await db.get(Dossier, dossier_id)
     if not dossier:

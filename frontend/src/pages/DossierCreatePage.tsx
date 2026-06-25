@@ -6,7 +6,7 @@ import { Button } from "../components/ui/Button";
 import { FadeIn } from "../components/ui/FadeIn";
 import { Input } from "../components/ui/Input";
 import { useCreateDossier } from "../hooks/useDossiers";
-import { isValidRfcFormat } from "../utils/formatRfc";
+import { formatRfc, isValidRfcFormat } from "../utils/formatRfc";
 
 export function DossierCreatePage() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export function DossierCreatePage() {
     setLoading(true);
     try {
       const entity = await createEntity({
-        rfc: rfc.toUpperCase().trim(),
+        rfc: formatRfc(rfc),
         razon_social: razonSocial.trim(),
       });
       const dossier = await createDossier.mutateAsync({ entity_id: entity.id });

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { RiskScoreGauge } from "../../risk/RiskScoreGauge";
 import { RiskFactorList } from "../../risk/RiskFactorList";
 import { SuggestedActions } from "../../risk/SuggestedActions";
@@ -12,12 +12,14 @@ interface Props {
 export function StepEvaluacionRiesgo({ dossierId }: Props) {
   const { data: assessment, isLoading } = useLatestRiskAssessment(dossierId);
   const calculate = useCalculateRisk(dossierId);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && !assessment && !calculate.isPending) {
+    if (!isLoading && !hasRun.current && !assessment && !calculate.isPending) {
+      hasRun.current = true;
       calculate.mutate();
     }
-  }, [isLoading]);
+  }, [isLoading, assessment, calculate]);
 
   if (isLoading || calculate.isPending) {
     return (

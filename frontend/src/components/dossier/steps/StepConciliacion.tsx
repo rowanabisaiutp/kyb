@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { ReconciliationTable } from "../../reconciliation/ReconciliationTable";
 import { useReconciliation, useRunReconciliation } from "../../../hooks/useReconciliation";
 import { LoadingSpinner } from "../../ui/LoadingSpinner";
@@ -10,12 +10,14 @@ interface Props {
 export function StepConciliacion({ dossierId }: Props) {
   const { data: results, isLoading } = useReconciliation(dossierId);
   const run = useRunReconciliation(dossierId);
+  const hasRun = useRef(false);
 
   useEffect(() => {
-    if (!isLoading && (!results || results.length === 0) && !run.isPending) {
+    if (!isLoading && !hasRun.current && (!results || results.length === 0) && !run.isPending) {
+      hasRun.current = true;
       run.mutate();
     }
-  }, [isLoading]);
+  }, [isLoading, results, run]);
 
   if (isLoading || run.isPending) {
     return (
