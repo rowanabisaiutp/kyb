@@ -28,6 +28,7 @@ def _clean_fiscal():
             "art_69_csd_sin_efectos": {},
             "art_69b": {},
             "art_69b_bis": {},
+            "art_49bis": {},
         }
     )
 
@@ -214,6 +215,7 @@ class TestIntegration:
                 "art_69_csd_sin_efectos": {},
                 "art_69b": {},
                 "art_69b_bis": {},
+                "art_49bis": {},
             }
         )
         r = await client.post(f"/api/v1/dossiers/{d['id']}/fiscal-check")
@@ -232,6 +234,7 @@ class TestIntegration:
                 "art_69_csd_sin_efectos": {},
                 "art_69b": {},
                 "art_69b_bis": {},
+                "art_49bis": {},
             }
         )
         r = await client.post(f"/api/v1/dossiers/{d['id']}/fiscal-check")
@@ -307,6 +310,7 @@ class TestIntegration:
                     ]
                 },
                 "art_69b_bis": {},
+                "art_49bis": {},
             }
         )
         await client.post(f"/api/v1/dossiers/{d['id']}/fiscal-check")
@@ -352,6 +356,7 @@ class TestIntegration:
                 "art_69_csd_sin_efectos": {},
                 "art_69b": {},
                 "art_69b_bis": {},
+                "art_49bis": {},
             }
         )
         await client.post(f"/api/v1/dossiers/{d['id']}/fiscal-check")

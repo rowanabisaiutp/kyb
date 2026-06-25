@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import pytest
 import pytest_asyncio
@@ -8,12 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.models import Base
 
-TEST_DB_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql+asyncpg://kyb_dev:kyb_dev_pass@localhost:5432/kyb_dev",
-)
+TEST_DB_URL = os.environ.get("DATABASE_URL", "")
 
-_engine = create_async_engine(TEST_DB_URL, echo=False)
+if TEST_DB_URL and "postgresql" in TEST_DB_URL:
+    _engine = create_async_engine(TEST_DB_URL, echo=False)
+else:
+    _engine = create_async_engine(
+        "sqlite+aiosqlite:///test_kyb.db",
+        echo=False,
+        connect_args={"check_same_thread": False},
+    )
+
 _session_factory = async_sessionmaker(
     _engine, class_=AsyncSession, expire_on_commit=False
 )

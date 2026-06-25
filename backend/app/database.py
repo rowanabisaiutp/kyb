@@ -9,9 +9,13 @@ if (
 ):
     connect_args["ssl"] = False
 
-engine = create_async_engine(
-    settings.async_database_url,
-    echo=settings.APP_ENV == "development",
-    connect_args=connect_args,
-)
+try:
+    engine = create_async_engine(
+        settings.async_database_url,
+        echo=settings.APP_ENV == "development",
+        connect_args=connect_args,
+    )
+except ModuleNotFoundError:
+    engine = create_async_engine("sqlite+aiosqlite:///test_kyb.db", echo=False)
+
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

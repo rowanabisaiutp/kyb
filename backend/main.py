@@ -12,7 +12,16 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import async_session, engine
 from app.models import Base
-from app.routers import audit, documents, dossiers, entities, fiscal, health, reconciliation, risk
+from app.routers import (
+    audit,
+    documents,
+    dossiers,
+    entities,
+    fiscal,
+    health,
+    reconciliation,
+    risk,
+)
 from app.services.fiscal_service import set_loaded_lists
 from app.utils.csv_parser import load_all_lists
 
@@ -43,10 +52,12 @@ async def _periodic_validity_check():
             async with async_session() as db:
                 result = await db.execute(
                     select(Dossier.id).where(
-                        Dossier.status.notin_([
-                            DossierStatus.DRAFT.value,
-                            DossierStatus.REJECTED.value,
-                        ])
+                        Dossier.status.notin_(
+                            [
+                                DossierStatus.DRAFT.value,
+                                DossierStatus.REJECTED.value,
+                            ]
+                        )
                     )
                 )
                 dossier_ids = result.scalars().all()
@@ -57,7 +68,9 @@ async def _periodic_validity_check():
                         updated += 1
                 await db.commit()
                 if updated:
-                    logger.info("Validity check: %d dossiers marked as needs_update", updated)
+                    logger.info(
+                        "Validity check: %d dossiers marked as needs_update", updated
+                    )
         except Exception as e:
             logger.error("Validity check failed: %s", e)
         await asyncio.sleep(3600)
@@ -109,10 +122,12 @@ if STATIC_DIR.is_dir():
     async def serve_spa(full_path: str):
         if full_path.startswith("api/"):
             from fastapi import HTTPException
+
             raise HTTPException(status_code=404, detail="Not found")
         file_path = (STATIC_DIR / full_path).resolve()
         if not str(file_path).startswith(str(STATIC_DIR.resolve())):
             from fastapi import HTTPException
+
             raise HTTPException(status_code=404)
         if file_path.is_file():
             return FileResponse(file_path)
