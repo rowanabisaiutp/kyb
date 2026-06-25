@@ -24,7 +24,7 @@ def _clean_fiscal():
 
 
 async def _new_entity(client, rfc=None):
-    rfc = rfc or f"TST{uuid.uuid4().hex[:4].upper()}01010"
+    rfc = rfc or f"XAXX{uuid.uuid4().hex[:6]}XXA".upper()
     r = await client.post("/api/v1/entities", json={
         "rfc": rfc, "razon_social": "Test SA de CV",
         "domicilio_fiscal": "Av Reforma 222, CDMX",
@@ -47,12 +47,12 @@ class TestIntegration:
     # --- Entities ---
     async def test_create_entity(self, client):
         r = await client.post("/api/v1/entities", json={
-            "rfc": f"CRE{uuid.uuid4().hex[:4].upper()}01010", "razon_social": "Create SA",
+            "rfc": f"CRE{uuid.uuid4().hex[:6]}XXA".upper(), "razon_social": "Create SA",
         })
         assert r.status_code == 201
 
     async def test_duplicate_rfc(self, client):
-        rfc = f"DUP{uuid.uuid4().hex[:4].upper()}01010"
+        rfc = f"DUP{uuid.uuid4().hex[:6]}XXA".upper()
         await client.post("/api/v1/entities", json={"rfc": rfc, "razon_social": "Dup1"})
         r = await client.post("/api/v1/entities", json={"rfc": rfc, "razon_social": "Dup2"})
         assert r.status_code == 409

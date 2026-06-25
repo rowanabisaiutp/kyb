@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "sqlite+aiosqlite:///./kyb.db"
+    DATABASE_URL: str = "postgresql+asyncpg://kyb_dev:kyb_dev_pass@localhost:5432/kyb_dev"
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
     AWS_ACCESS_KEY_ID: str = ""
