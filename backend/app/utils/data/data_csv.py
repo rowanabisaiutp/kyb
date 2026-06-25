@@ -1,6 +1,13 @@
 # LISTAS FISCALES del SAT: URLs reales de Azure Blob. Sin mocks.
 # 9 listas cubriendo Art. 69 (6 tipos), Art. 69-B (EFOS), Art. 69-B Bis, Art. 49 Bis CFF.
 # Se descargan al iniciar la app y se indexan en memoria para busqueda O(1) por RFC.
+#
+# Fuentes oficiales:
+#   - Datos abiertos SAT: https://www.sat.gob.mx/minisitio/DatosAbiertos/contribuyentes_publicados.html
+#   - Incumplidos (Art. 69): https://wwwmat.sat.gob.mx/consultas/11981/consulta-la-relacion-de-contribuyentes-incumplidos
+#   - EFOS (Art. 69-B): https://wwwmat.sat.gob.mx/consultas/76674/consulta-la-relacion-de-contribuyentes-con-operaciones-presuntamente-inexistentes
+#   - Regla 1.4.14 RGCE 2026: https://www.sat.gob.mx/minisitio/NormatividadRMFyRGCE/documentos2026/rgce/rgce/1raRMRGCEpara2026.pdf
+#   - Portal SAT PLD: https://sppld.sat.gob.mx/pld/interiores/obligaciones.html
 SAT_LISTS = {
     # --- Art. 69 CFF (excepto fraccion VI) - 6 listados ---
     "art_69_cancelados": {

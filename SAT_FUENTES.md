@@ -56,7 +56,27 @@ Consulta manual: [DOF — Diario Oficial de la Federación](https://www.dof.gob.
 
 ---
 
-## Fuente oficial
+## Fuentes oficiales
 
-Portal de datos abiertos SAT:
-https://www.sat.gob.mx/minisitio/DatosAbiertos/contribuyentes_publicados.html
+| Fuente | URL |
+|---|---|
+| Regla 1.4.14 RGCE 2026 | https://www.sat.gob.mx/minisitio/NormatividadRMFyRGCE/documentos2026/rgce/rgce/1raRMRGCEpara2026.pdf |
+| Datos abiertos SAT (CSVs) | https://www.sat.gob.mx/minisitio/DatosAbiertos/contribuyentes_publicados.html |
+| Contribuyentes incumplidos (Art. 69 CFF) | https://wwwmat.sat.gob.mx/consultas/11981/consulta-la-relacion-de-contribuyentes-incumplidos |
+| Operaciones presuntamente inexistentes (Art. 69-B CFF) | https://wwwmat.sat.gob.mx/consultas/76674/consulta-la-relacion-de-contribuyentes-con-operaciones-presuntamente-inexistentes |
+| Portal SAT PLD (obligaciones) | https://sppld.sat.gob.mx/pld/interiores/obligaciones.html |
+
+### Nota sobre Portal SAT PLD
+
+El portal PLD no ofrece CSVs, APIs ni listas descargables. Es un portal informativo que define
+las obligaciones de Actividades Vulnerables bajo la Ley Federal PLD/FT:
+
+1. **Alta/Registro** ante el SAT previo al primer Aviso.
+2. **Identificacion de clientes** — verificar identidad con documentos oficiales y obtener informacion
+   sobre actividad y beneficiarios reales (implementado en el expediente KYB de esta plataforma).
+3. **Reportes a la UIF** — proporcionar informacion de operaciones a mas tardar el dia 17 del mes siguiente.
+4. **Custodia de registros** — conservar documentacion fisica o electronica por 5 años
+   (implementado via audit log y almacenamiento persistente de documentos).
+
+Tambien publica las Evaluaciones Nacionales de Riesgos (2016, 2020, 2023) en PDF.
+| DOF — Diario Oficial de la Federación | https://www.dof.gob.mx |

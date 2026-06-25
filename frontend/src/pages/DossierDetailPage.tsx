@@ -31,7 +31,7 @@ export function DossierDetailPage() {
 
   return (
     <div className="flex flex-col lg:flex-row h-full overflow-hidden">
-      <div className="hidden lg:block shrink-0 overflow-y-auto">
+      <div className="hidden lg:block shrink-0 overflow-y-auto scrollbar-hide">
         <StepSidebar
           currentStep={currentStep}
           steps={completion.steps}

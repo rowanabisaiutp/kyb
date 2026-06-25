@@ -64,6 +64,16 @@ Consulta directa a los CSVs publicos del SAT — no mocks:
 
 Cada consulta guarda: fuente, fecha/hora, RFC buscado, resultado y referencia al listado.
 
+### Fuentes Oficiales
+
+| Fuente | Uso en la plataforma |
+|--------|---------------------|
+| [Regla 1.4.14 RGCE 2026](https://www.sat.gob.mx/minisitio/NormatividadRMFyRGCE/documentos2026/rgce/rgce/1raRMRGCEpara2026.pdf) | Marco normativo del expediente KYB |
+| [Datos abiertos SAT](https://www.sat.gob.mx/minisitio/DatosAbiertos/contribuyentes_publicados.html) | CSVs descargados para consulta de listas fiscales |
+| [Contribuyentes incumplidos](https://wwwmat.sat.gob.mx/consultas/11981/consulta-la-relacion-de-contribuyentes-incumplidos) | Referencia Art. 69 CFF (6 listados) |
+| [Operaciones presuntamente inexistentes](https://wwwmat.sat.gob.mx/consultas/76674/consulta-la-relacion-de-contribuyentes-con-operaciones-presuntamente-inexistentes) | Referencia Art. 69-B CFF (EFOS) |
+| [Portal SAT PLD](https://sppld.sat.gob.mx/pld/interiores/obligaciones.html) | Obligaciones PLD/FT: identificacion de clientes y custodia de registros (no ofrece datos descargables; la plataforma implementa estas obligaciones via expediente KYB y audit log) |
+
 ### Score de Riesgo Explicable
 
 Motor determinístico con 30+ reglas. Cada factor muestra puntos, descripcion y si bloquea la aprobacion:
