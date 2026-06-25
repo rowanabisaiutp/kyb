@@ -10,6 +10,8 @@ from app.utils.csv_parser import SAT_LISTS, search_rfc
 
 logger = logging.getLogger(__name__)
 
+# Estado global: 9 listas del SAT cargadas en memoria al iniciar (main.py).
+# ~500K+ RFCs en total. Busqueda O(1) por RFC via dict.
 _fiscal_lists: dict[str, dict[str, list[dict]]] = {}
 _last_loaded: datetime | None = None
 
@@ -40,7 +42,8 @@ def get_lists_status() -> dict:
     }
 
 
-# Req: Guardar fuente, fecha/hora, RFC buscado, resultado y referencia al listado usado.
+# CONSULTA FISCAL: busca RFC en 9 listas y guarda un FiscalListCheck por cada una.
+# Persiste: fuente (source_url), fecha/hora (checked_at), RFC, resultado (found), referencia.
 async def check_rfc_in_lists(
     db: AsyncSession,
     *,

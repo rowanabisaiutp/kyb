@@ -2,14 +2,18 @@ from app.models.document import Document
 from app.models.fiscal_check import FiscalListCheck
 from app.utils.date_utils import is_current_month, is_expired, is_older_than_months
 
+# VIGENCIAS: estas funciones determinan si un expediente pasa a needs_update.
+# El scheduler en main.py las ejecuta cada hora sobre todos los dossiers activos.
 
+
+# Trigger 1: documento vencido (fecha_vencimiento < hoy).
 def check_document_expiration(doc: Document) -> bool:
     if doc.fecha_vencimiento and is_expired(doc.fecha_vencimiento):
         return True
     return False
 
 
-# Req: CSF fuera del mes vigente suma riesgo.
+# Trigger 2: CSF no es del mes vigente. Busca en extracted_data y fecha_emision.
 def check_csf_current_month(documents: list[Document]) -> bool:
     for doc in documents:
         if doc.document_type == "constancia_situacion_fiscal" and doc.extracted_data:
@@ -25,7 +29,7 @@ def check_csf_current_month(documents: list[Document]) -> bool:
     return False
 
 
-# Req: Revision de listas fiscales con mas de 3 meses marca needs_update.
+# Trigger 3: ultima consulta fiscal tiene mas de 3 meses.
 def check_fiscal_staleness(fiscal_checks: list[FiscalListCheck]) -> bool:
     if not fiscal_checks:
         return True
@@ -37,7 +41,7 @@ def get_expired_documents(documents: list[Document]) -> list[Document]:
     return [d for d in documents if check_document_expiration(d)]
 
 
-# Req: Expediente pasa a needs_update si doc vence, CSF no es del mes, o listas >3 meses.
+# Unifica los 3 triggers: si alguno es True -> expediente pasa a needs_update.
 def needs_update(
     documents: list[Document], fiscal_checks: list[FiscalListCheck]
 ) -> bool:

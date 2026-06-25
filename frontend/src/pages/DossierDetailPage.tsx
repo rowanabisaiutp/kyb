@@ -30,8 +30,8 @@ export function DossierDetailPage() {
   if (!dossier) return <p className="text-text-secondary text-center py-12">Expediente no encontrado.</p>;
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] -mx-4 -mt-0 lg:-m-8">
-      <div className="hidden lg:block">
+    <div className="flex flex-col lg:flex-row h-full overflow-hidden">
+      <div className="hidden lg:block shrink-0 overflow-y-auto">
         <StepSidebar
           currentStep={currentStep}
           steps={completion.steps}
@@ -43,8 +43,8 @@ export function DossierDetailPage() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between px-4 lg:px-8 py-3 lg:py-4 border-b border-border">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div className="flex items-center justify-between px-4 lg:px-8 py-3 lg:py-4 border-b border-border shrink-0">
           <div className="flex items-center gap-2 text-sm text-text-secondary min-w-0">
             <Link to="/dossiers" className="hover:text-primary flex items-center gap-1 shrink-0">
               <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Expedientes</span>
@@ -57,14 +57,14 @@ export function DossierDetailPage() {
           </span>
         </div>
 
-        <div className="h-1 bg-gray-100">
+        <div className="h-1 bg-gray-100 shrink-0">
           <div
             className="h-full bg-primary transition-all duration-300"
             style={{ width: `${((currentStep + 1) / completion.totalSteps) * 100}%` }}
           />
         </div>
 
-        <div className="lg:hidden flex gap-1 px-3 py-2 overflow-x-auto border-b border-border bg-gray-50">
+        <div className="lg:hidden flex gap-1 px-3 py-2 overflow-x-auto border-b border-border bg-gray-50 shrink-0">
           {completion.steps.map((done, i) => (
             <button
               key={i}

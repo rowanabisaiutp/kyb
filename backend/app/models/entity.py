@@ -8,9 +8,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
+# Regla 1.4.14 RGCE: persona moral sujeta a evaluacion KYB.
 class LegalEntity(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "legal_entities"
 
+    # RFC obligatorio; si falta, el score suma +25 bloqueante (COMP_RFC_MISSING).
     rfc: Mapped[str] = mapped_column(
         String(13), unique=True, nullable=False, index=True
     )
@@ -22,15 +24,18 @@ class LegalEntity(UUIDMixin, TimestampMixin, Base):
     fecha_constitucion: Mapped[date | None] = mapped_column()
     objeto_social: Mapped[str | None] = mapped_column()
 
+    # Si no hay representantes -> +20 riesgo (COMP_NO_REP_LEGAL).
     representatives: Mapped[list["LegalRepresentative"]] = relationship(
         back_populates="entity", cascade="all, delete-orphan"
     )
+    # Si no hay socios -> +10 riesgo (COMP_NO_SHAREHOLDERS).
     shareholders: Mapped[list["Shareholder"]] = relationship(
         back_populates="entity", cascade="all, delete-orphan"
     )
     dossiers: Mapped[list["Dossier"]] = relationship(back_populates="entity")  # noqa: F821
 
 
+# Conciliacion: se cruza con poder_representacion e identificacion_representante.
 class LegalRepresentative(UUIDMixin, Base):
     __tablename__ = "legal_representatives"
 
@@ -49,6 +54,7 @@ class LegalRepresentative(UUIDMixin, Base):
     entity: Mapped["LegalEntity"] = relationship(back_populates="representatives")
 
 
+# Socios/accionistas/beneficiario controlador (Regla 1.4.14 RGCE).
 class Shareholder(UUIDMixin, Base):
     __tablename__ = "shareholders"
 

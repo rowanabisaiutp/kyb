@@ -1,6 +1,8 @@
-# Req: Listas fiscales publicas del SAT (Art. 69, 69-B, 69-B Bis, 49 Bis CFF). Datos reales, sin mocks.
+# LISTAS FISCALES del SAT: URLs reales de Azure Blob. Sin mocks.
+# 9 listas cubriendo Art. 69 (6 tipos), Art. 69-B (EFOS), Art. 69-B Bis, Art. 49 Bis CFF.
+# Se descargan al iniciar la app y se indexan en memoria para busqueda O(1) por RFC.
 SAT_LISTS = {
-    # Art. 69 CFF (excepto fraccion VI) - contribuyentes incumplidos
+    # --- Art. 69 CFF (excepto fraccion VI) - 6 listados ---
     "art_69_cancelados": {
         "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGR/Cancelados.csv",
         "article": "69 CFF",
@@ -31,19 +33,19 @@ SAT_LISTS = {
         "article": "69 CFF",
         "description": "Contribuyentes con CSD sin efectos",
     },
-    # Art. 69-B CFF - EFOS (operaciones presuntamente inexistentes)
+    # --- Art. 69-B CFF - EFOS (Definitivo/Presunto/Desvirtuado/Sentencia Favorable) ---
     "art_69b": {
         "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGAFF/Listado_completo_69-B.csv",
         "article": "69-B CFF",
         "description": "Operaciones presuntamente inexistentes (EFOS) - listado completo",
     },
-    # Art. 69-B Bis CFF - transmision indebida de perdidas fiscales
+    # --- Art. 69-B Bis CFF - transmision indebida de perdidas fiscales ---
     "art_69b_bis": {
         "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGGC/Listado_69_B_Bis_Completo.csv",
         "article": "69-B Bis CFF",
         "description": "Transmision indebida de perdidas fiscales",
     },
-    # Art. 49 Bis CFF - usa misma fuente 69-B (unica base publica SAT disponible)
+    # --- Art. 49 Bis CFF - no hay CSV propio; usa fuente 69-B (justificado en SAT_FUENTES.md) ---
     "art_49bis": {
         "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGAFF/Listado_completo_69-B.csv",
         "article": "49 Bis CFF",

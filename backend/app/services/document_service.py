@@ -8,7 +8,7 @@ from app.services import storage_service
 from app.services.audit_service import log_action
 
 
-# Req: Cargar documentos y registrar metadata auditable (Regla 1.4.14 RGCE).
+# UPLOAD: valida MIME/tamano, sube a S3, guarda metadata en DB, registra audit log.
 async def upload_document(
     db: AsyncSession,
     *,
@@ -93,7 +93,7 @@ async def delete_document(db: AsyncSession, document_id: uuid.UUID) -> bool:
     return True
 
 
-# Req: Expediente minimo: acta, ID representante, comprobante domicilio, CSF, manifestacion.
+# CHECKLIST: 5 docs obligatorios. Los faltantes suman riesgo en el score.
 def get_missing_documents(documents: list[Document]) -> list[str]:
     present_types = {d.document_type for d in documents}
     required = [

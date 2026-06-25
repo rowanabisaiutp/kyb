@@ -8,6 +8,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base, UUIDMixin
 
 
+# Registro de evidencia: cada accion del expediente queda trazada.
+# Acciones: document.uploaded, extraction.completed, fiscal.checked,
+# reconciliation.run, risk.calculated, dossier.approved, dossier.rejected,
+# dossier.auto_needs_update, etc.
 class AuditLog(UUIDMixin, Base):
     __tablename__ = "audit_logs"
 
@@ -19,6 +23,7 @@ class AuditLog(UUIDMixin, Base):
     )
     action: Mapped[str] = mapped_column(String(100), nullable=False)
     actor: Mapped[str] = mapped_column(String(200), default="system")
+    # Contexto JSON libre: RFC buscado, factores, provider AI usado, etc.
     details: Mapped[dict | None] = mapped_column(JSON)
     ip_address: Mapped[str | None] = mapped_column(String(45))
     created_at: Mapped[datetime] = mapped_column(

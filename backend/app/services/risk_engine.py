@@ -11,7 +11,10 @@ from app.services.validity_service import (
 )
 
 
-# Req: Score determinístico, explicable y testeable. Cada factor sube o baja el riesgo.
+# SCORE DE RIESGO — determinístico, explicable, testeable.
+# Funcion pura: sin DB, sin side effects, sin aleatoriedad. Misma entrada = mismo resultado.
+# Evalua 4 categorias: fiscal, documentos, conciliacion, completitud.
+# Cada factor tiene code, points, description, blocking y suggested_action.
 @dataclass
 class RiskFactor:
     code: str
@@ -31,7 +34,8 @@ class RiskAssessmentResult:
     suggested_actions: list[str]
 
 
-# --- Rule definitions ---
+# --- Reglas fiscales: Art. 69, 69-B, 69-B Bis, 49 Bis CFF ---
+# Cada regla: (puntos, bloqueante, descripcion).
 
 FISCAL_RULES: dict[str, tuple[int, bool, str]] = {
     "art_69_firmes": (40, True, "Creditos fiscales firmes (Art. 69 CFF)"),
@@ -47,6 +51,7 @@ FISCAL_RULES: dict[str, tuple[int, bool, str]] = {
     "art_69b_bis": (45, True, "Transmision indebida de perdidas (Art. 69-B Bis CFF)"),
 }
 
+# Art. 69-B: score varia segun situacion (Definitivo/Presunto/Desvirtuado/Sentencia).
 ART_69B_SITUATION_RULES: dict[str, tuple[str, int, bool, str]] = {
     "Definitivo": (
         "FISCAL_69B_DEFINITIVO",
@@ -69,7 +74,7 @@ ART_69B_SITUATION_RULES: dict[str, tuple[str, int, bool, str]] = {
     ),
 }
 
-# Req: Documentos faltantes suman riesgo (acta, ID, comprobante, CSF, manifestacion).
+# --- Reglas documentos: faltantes y vencidos ---
 DOC_MISSING_RULES: dict[str, tuple[str, int, str]] = {
     "acta_constitutiva": ("DOC_MISSING_ACTA", 15, "Acta constitutiva faltante"),
     "identificacion_representante": (
@@ -94,12 +99,14 @@ DOC_MISSING_RULES: dict[str, tuple[str, int, str]] = {
     ),
 }
 
+# Docs vencidos: comprobante/ID +20, otros +15.
 DOC_EXPIRED_POINTS: dict[str, int] = {
     "comprobante_domicilio": 20,
     "identificacion_representante": 20,
 }
 
-# Req: Discrepancias entre documentos (RFC, razon social, domicilio, representante, fechas).
+# --- Reglas conciliacion: discrepancias entre documentos ---
+# RFC mismatch es bloqueante (+35). Razon social +30. Domicilio +15.
 RECON_RULES: dict[str, tuple[str, int, bool, str]] = {
     "rfc": ("RECON_RFC_MISMATCH", 35, True, "Discrepancia de RFC entre documentos"),
     "razon_social": (
@@ -134,7 +141,7 @@ RECON_RULES: dict[str, tuple[str, int, bool, str]] = {
     ),
 }
 
-# Req: Acciones sugeridas explicables por cada factor de riesgo detectado.
+# --- Acciones sugeridas: texto en español por cada factor detectado ---
 SUGGESTED_ACTIONS: dict[str, str] = {
     "FISCAL_69_FIRMES": "Resolver creditos fiscales firmes ante el SAT",
     "FISCAL_69_EXIGIBLES": "Atender creditos fiscales exigibles",
@@ -168,7 +175,7 @@ SUGGESTED_ACTIONS: dict[str, str] = {
 }
 
 
-# Req: Clasificacion safe / review_required / high_risk. Bloquear aprobacion en riesgo critico.
+# CLASIFICACION: safe (<20) | review_required (20-49) | high_risk (>=50 o bloqueante).
 def classify(total_score: int, has_blocking: bool) -> str:
     if has_blocking:
         return "high_risk"
@@ -179,6 +186,8 @@ def classify(total_score: int, has_blocking: bool) -> str:
     return "safe"
 
 
+# PUNTO CENTRAL: calcula score sumando factores de 4 categorias.
+# Entrada: entity + docs + fiscal_checks + reconciliation. Salida: score + clasificacion + factores.
 def calculate_risk(
     *,
     entity: LegalEntity,
@@ -188,10 +197,10 @@ def calculate_risk(
 ) -> RiskAssessmentResult:
     factors: list[RiskFactor] = []
 
-    _evaluate_fiscal_rules(fiscal_checks, factors)
-    _evaluate_document_rules(documents, factors)
-    _evaluate_reconciliation_rules(reconciliation_results, factors)
-    _evaluate_completeness_rules(entity, factors)
+    _evaluate_fiscal_rules(fiscal_checks, factors)       # Listas SAT (Art. 69/69-B/69-B Bis/49 Bis).
+    _evaluate_document_rules(documents, factors)          # Faltantes, vencidos, CSF fuera de mes.
+    _evaluate_reconciliation_rules(reconciliation_results, factors)  # Discrepancias entre docs.
+    _evaluate_completeness_rules(entity, factors)         # RFC, rep legal, socios.
 
     total_score = sum(f.points for f in factors)
     has_blocking = any(f.blocking for f in factors)
@@ -426,7 +435,7 @@ def _evaluate_reconciliation_rules(
                 discrepancy_fields.add(r.field_name)
 
 
-# Req: Completitud de representante legal, socios/accionistas o beneficiario controlador.
+# --- Reglas completitud: RFC, representante legal, socios/accionistas ---
 def _evaluate_completeness_rules(
     entity: LegalEntity, factors: list[RiskFactor]
 ) -> None:

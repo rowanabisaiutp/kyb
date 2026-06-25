@@ -10,7 +10,8 @@ from app.services.audit_service import log_action
 
 logger = logging.getLogger(__name__)
 
-# Req: Uso obligatorio de AI para extraccion de datos de documentos del expediente KYB.
+# EXTRACCION AI: prompts por tipo de documento. La AI devuelve JSON con campos clave.
+# Los datos extraidos alimentan la conciliacion (RFC, razon social, domicilio, rep legal, fechas).
 EXTRACTION_PROMPTS: dict[str, str] = {
     "constancia_situacion_fiscal": (
         "Extrae los siguientes datos de esta Constancia de Situacion Fiscal (CSF) del SAT. "
@@ -61,6 +62,7 @@ def _get_prompt(document_type: str) -> str:
     return EXTRACTION_PROMPTS.get(document_type, DEFAULT_PROMPT)
 
 
+# FALLBACK MULTI-MODELO: Gemini -> Groq -> Claude. Si uno falla, el siguiente responde.
 AI_PROVIDERS = []
 
 
@@ -92,7 +94,7 @@ async def extract_document_data(
         await db.flush()
         return None
 
-    # Step 1: Try to extract text from PDF locally (free, no quota)
+    # Paso 1: extrae texto del PDF localmente con PyMuPDF (gratis, sin quota AI).
     from app.utils.pdf_extractor import extract_text_from_pdf
 
     pdf_text = None
@@ -105,7 +107,7 @@ async def extract_document_data(
                 len(pdf_text),
             )
 
-    # Step 2: Send to AI (text only if extracted, full file if not)
+    # Paso 2: envia texto (o archivo completo) a AI con fallback entre proveedores.
     extracted = None
     provider_used = None
 

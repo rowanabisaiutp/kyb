@@ -33,14 +33,16 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    asyncio.create_task(_load_fiscal_lists())
-    validity_task = asyncio.create_task(_periodic_validity_check())
+    asyncio.create_task(_load_fiscal_lists())       # Descarga 9 CSVs del SAT al iniciar.
+    validity_task = asyncio.create_task(_periodic_validity_check())  # Vigencias cada hora.
 
     yield
 
     validity_task.cancel()
 
 
+# SCHEDULER DE VIGENCIAS: cada hora revisa todos los dossiers activos.
+# Si un doc vencio, CSF no es del mes, o fiscal > 3 meses -> needs_update automatico.
 async def _periodic_validity_check():
     from app.models.dossier import Dossier, DossierStatus
     from app.services.dossier_service import check_and_update_validity
@@ -76,6 +78,7 @@ async def _periodic_validity_check():
         await asyncio.sleep(3600)
 
 
+# CARGA INICIAL: descarga 9 CSVs publicos del SAT en memoria (~500K+ RFCs).
 async def _load_fiscal_lists():
     try:
         logger.info("Loading SAT fiscal lists...")

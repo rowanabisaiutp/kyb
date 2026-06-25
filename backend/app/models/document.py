@@ -9,13 +9,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin, UUIDMixin
 
 
+# Tipos de documento del expediente KYB (Regla 1.4.14 RGCE).
+# Los 5 primeros son obligatorios; si faltan, el score de riesgo sube.
 class DocumentType(str, enum.Enum):
-    ACTA_CONSTITUTIVA = "acta_constitutiva"
-    IDENTIFICACION_REPRESENTANTE = "identificacion_representante"
-    PODER_REPRESENTACION = "poder_representacion"
-    COMPROBANTE_DOMICILIO = "comprobante_domicilio"
-    CONSTANCIA_SITUACION_FISCAL = "constancia_situacion_fiscal"
-    MANIFESTACION_PROTESTA = "manifestacion_protesta"
+    ACTA_CONSTITUTIVA = "acta_constitutiva"               # Faltante: +15 riesgo.
+    IDENTIFICACION_REPRESENTANTE = "identificacion_representante"  # Faltante: +15.
+    PODER_REPRESENTACION = "poder_representacion"          # Opcional ("cuando aplique").
+    COMPROBANTE_DOMICILIO = "comprobante_domicilio"        # Faltante: +10. Vencido: +20.
+    CONSTANCIA_SITUACION_FISCAL = "constancia_situacion_fiscal"  # Faltante: +20. Fuera de mes: +15.
+    MANIFESTACION_PROTESTA = "manifestacion_protesta"      # Faltante: +10.
     RFC_DOCUMENTO = "rfc_documento"
     OTRO = "otro"
 
@@ -39,8 +41,10 @@ class Document(UUIDMixin, TimestampMixin, Base):
     file_size: Mapped[int | None] = mapped_column()
     mime_type: Mapped[str | None] = mapped_column(String(100))
     fecha_emision: Mapped[date | None] = mapped_column()
+    # Vigencias: si fecha_vencimiento < hoy -> needs_update + DOC_EXPIRED en score.
     fecha_vencimiento: Mapped[date | None] = mapped_column()
     is_expired: Mapped[bool] = mapped_column(default=False)
+    # Datos extraidos por AI (Gemini/Groq/Claude). Alimenta conciliacion y score.
     extracted_data: Mapped[dict | None] = mapped_column(JSON)
     extraction_status: Mapped[str] = mapped_column(
         String(20), default=ExtractionStatus.PENDING.value

@@ -14,16 +14,18 @@ from app.utils.text_normalization import (
     texts_match,
 )
 
+# CONCILIACION: severidad por campo. critical = bloqueante en score, warning = +puntos.
 FIELD_SEVERITY = {
-    "rfc": "critical",
-    "razon_social": "warning",
-    "domicilio": "warning",
-    "representante_legal": "warning",
-    "fecha_emision": "info",
-    "fecha_constitucion": "info",
+    "rfc": "critical",              # Discrepancia RFC -> +35 bloqueante.
+    "razon_social": "warning",      # Discrepancia razon social -> +30.
+    "domicilio": "warning",         # Discrepancia domicilio -> +15.
+    "representante_legal": "warning",  # Discrepancia rep legal -> +25.
+    "fecha_emision": "info",        # Discrepancia fecha emision -> +10.
+    "fecha_constitucion": "info",   # Discrepancia fecha constitucion -> +5.
 }
 
-# Req: Conciliar datos entre documentos (RFC, razon social, domicilio, representante, fechas).
+# Mapa de campos a fuentes. Cada campo se extrae de N tipos de documento.
+# Se comparan todas las combinaciones de pares (incluyendo formulario).
 FIELD_EXTRACTORS: dict[str, dict[str, list[str]]] = {
     "rfc": {
         "constancia_situacion_fiscal": ["rfc"],
@@ -61,6 +63,7 @@ def _extract_value(extracted_data: dict | None, keys: list[str]) -> str | None:
     return None
 
 
+# Comparacion inteligente por campo: RFC exacto, razon social fuzzy, domicilio normalizado.
 def _compare_values(field: str, val_a: str | None, val_b: str | None) -> bool:
     if not val_a or not val_b:
         return val_a == val_b
@@ -84,7 +87,10 @@ def _compare_values(field: str, val_a: str | None, val_b: str | None) -> bool:
     return texts_match(val_a, val_b)
 
 
-# Req: Marcar discrepancias materiales entre CSF, acta, poder, ID y formulario.
+# CONCILIACION PRINCIPAL: cruza datos entre documentos y formulario.
+# 1. Recolecta valores de cada fuente (docs con extraccion AI + entity).
+# 2. Genera todas las combinaciones de pares.
+# 3. Compara con logica por campo. 4. Guarda ReconciliationResult por par.
 async def run_reconciliation(
     db: AsyncSession,
     *,

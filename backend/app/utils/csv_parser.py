@@ -17,7 +17,7 @@ def _find_rfc_column(headers: list[str]) -> int | None:
     return None
 
 
-# Req: Consultar listas fiscales publicas del SAT con datos reales, sin mocks.
+# Descarga un CSV del SAT y lo indexa por RFC -> dict[rfc, filas]. Busqueda O(1).
 async def download_and_parse_csv(list_key: str) -> dict[str, list[dict]]:
     config = SAT_LISTS[list_key]
     url = config["url"]
@@ -65,6 +65,7 @@ async def download_and_parse_csv(list_key: str) -> dict[str, list[dict]]:
     return rfc_index
 
 
+# Descarga las 9 listas en paralelo. Reutiliza datos si dos listas comparten URL (49 Bis = 69-B).
 async def load_all_lists() -> dict[str, dict[str, list[dict]]]:
     import asyncio
 
@@ -91,7 +92,7 @@ async def load_all_lists() -> dict[str, dict[str, list[dict]]]:
     return all_lists
 
 
-# Req: Cada revision guarda fuente, RFC buscado, resultado y referencia al listado.
+# Busca un RFC en todas las listas. Retorna resultado por lista con fuente, articulo y detalle.
 def search_rfc(all_lists: dict[str, dict[str, list[dict]]], rfc: str) -> list[dict]:
     rfc = rfc.strip().upper()
     results = []

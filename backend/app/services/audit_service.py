@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.audit import AuditLog
 
 
-# Req: Registrar evidencia y audit log de todas las acciones del expediente.
+# AUDIT LOG: registra cada accion con actor, timestamp, detalles JSON e IP.
+# Llamado desde: upload, extraccion, fiscal check, conciliacion, riesgo, aprobacion.
 async def log_action(
     db: AsyncSession,
     *,

@@ -2,6 +2,8 @@ import re
 
 from unidecode import unidecode
 
+# NORMALIZACION: usada por conciliacion para comparar razon social, domicilio, etc.
+# "S.A. DE C.V." = "SA DE CV" = "SOCIEDAD ANONIMA DE CAPITAL VARIABLE".
 LEGAL_SUFFIX_PATTERNS = [
     (r"\bSOCIEDAD\s+ANONIMA\s+DE\s+CAPITAL\s+VARIABLE\b", "SA DE CV"),
     (r"\bSOCIEDAD\s+ANONIMA\b", "SA"),
@@ -34,6 +36,7 @@ def normalize_business_name(name: str | None) -> str:
     return result
 
 
+# Normaliza abreviaciones de domicilio: CALLE, COL., MUN., NUM., etc.
 def normalize_address(address: str | None) -> str:
     if not address:
         return ""
@@ -47,6 +50,7 @@ def normalize_address(address: str | None) -> str:
     return result
 
 
+# Jaccard sobre palabras. Usado con threshold 0.85 (razon social) o 0.7 (domicilio).
 def similarity_ratio(a: str, b: str) -> float:
     if not a or not b:
         return 0.0
