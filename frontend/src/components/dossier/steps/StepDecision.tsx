@@ -46,7 +46,10 @@ export function StepDecision({ dossier }: Props) {
   async function handleApprove() {
     setError(null);
     try {
-      await updateStatus.mutateAsync({ status: "in_review" });
+      const status = dossier.status;
+      if (status === "draft" || status === "needs_update") {
+        await updateStatus.mutateAsync({ status: "in_review" });
+      }
       await updateStatus.mutateAsync({ status: "approved", approved_by: "Compliance Officer" });
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -58,7 +61,10 @@ export function StepDecision({ dossier }: Props) {
   async function handleReject() {
     setError(null);
     try {
-      await updateStatus.mutateAsync({ status: "in_review" });
+      const status = dossier.status;
+      if (status === "draft" || status === "needs_update") {
+        await updateStatus.mutateAsync({ status: "in_review" });
+      }
       await updateStatus.mutateAsync({ status: "rejected", notes: "Rechazado tras evaluacion" });
     } catch (err) {
       if (axios.isAxiosError(err)) {
