@@ -1,0 +1,14 @@
+fastapi[standard]
+uvicorn[standard]
+sqlalchemy[asyncio]>=2.0
+aiosqlite
+asyncpg
+alembic
+pydantic-settings
+python-multipart
+boto3
+anthropic
+google-genai
+httpx
+python-dateutil
+unidecode
