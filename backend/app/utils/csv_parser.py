@@ -6,6 +6,7 @@ from app.utils.data.data_csv import SAT_LISTS
 
 logger = logging.getLogger(__name__)
 
+
 def _find_rfc_column(headers: list[str]) -> int | None:
     for i, h in enumerate(headers):
         if h.strip().upper() == "RFC":

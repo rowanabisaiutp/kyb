@@ -8,6 +8,7 @@ import { StepVerificacionSAT } from "../components/dossier/steps/StepVerificacio
 import { StepConciliacion } from "../components/dossier/steps/StepConciliacion";
 import { StepEvaluacionRiesgo } from "../components/dossier/steps/StepEvaluacionRiesgo";
 import { StepDecision } from "../components/dossier/steps/StepDecision";
+import { FadeIn } from "../components/ui/FadeIn";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useDossier } from "../hooks/useDossier";
 import { useStepCompletion } from "../hooks/useStepCompletion";
@@ -78,12 +79,14 @@ export function DossierDetailPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-4 lg:py-6">
-          {currentStep === 0 && <StepDatosEmpresa dossier={dossier} onComplete={() => goToStep(1)} />}
-          {currentStep === 1 && <StepDocumentos dossierId={dossier.id} />}
-          {currentStep === 2 && <StepVerificacionSAT dossierId={dossier.id} />}
-          {currentStep === 3 && <StepConciliacion dossierId={dossier.id} />}
-          {currentStep === 4 && <StepEvaluacionRiesgo dossierId={dossier.id} />}
-          {currentStep === 5 && <StepDecision dossier={dossier} />}
+          <FadeIn key={currentStep}>
+            {currentStep === 0 && <StepDatosEmpresa dossier={dossier} onComplete={() => goToStep(1)} />}
+            {currentStep === 1 && <StepDocumentos dossierId={dossier.id} />}
+            {currentStep === 2 && <StepVerificacionSAT dossierId={dossier.id} />}
+            {currentStep === 3 && <StepConciliacion dossierId={dossier.id} />}
+            {currentStep === 4 && <StepEvaluacionRiesgo dossierId={dossier.id} />}
+            {currentStep === 5 && <StepDecision dossier={dossier} />}
+          </FadeIn>
 
           {currentStep < 5 && (
             <StepNavigation

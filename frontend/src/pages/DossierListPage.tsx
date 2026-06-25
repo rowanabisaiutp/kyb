@@ -5,6 +5,7 @@ import { Header } from "../components/layout/Header";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { EmptyState } from "../components/ui/EmptyState";
+import { FadeIn } from "../components/ui/FadeIn";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { useDeleteDossier, useDossiers } from "../hooks/useDossiers";
@@ -27,17 +28,20 @@ export function DossierListPage() {
 
   return (
     <>
-      <Header
-        title="Expedientes KYB"
-        description="Gestion de expedientes de personas morales"
-        action={
-          <Link to="/dossiers/new">
-            <Button><Plus className="h-4 w-4" /> Nuevo Expediente</Button>
-          </Link>
-        }
-      />
+      <FadeIn>
+        <Header
+          title="Expedientes KYB"
+          description="Gestion de expedientes de personas morales"
+          action={
+            <Link to="/dossiers/new">
+              <Button><Plus className="h-4 w-4" /> Nuevo Expediente</Button>
+            </Link>
+          }
+        />
+      </FadeIn>
 
-      <Card className="mb-6">
+      <FadeIn delay={100}>
+        <Card className="mb-6">
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
@@ -64,7 +68,8 @@ export function DossierListPage() {
             <option value="rejected">Rechazado</option>
           </select>
         </div>
-      </Card>
+        </Card>
+      </FadeIn>
 
       {isLoading ? (
         <LoadingSpinner className="py-12" />
@@ -80,8 +85,9 @@ export function DossierListPage() {
         />
       ) : (
         <div className="space-y-3">
-          {dossiers.map((d) => (
-            <div key={d.id} className="flex items-center gap-2">
+          {dossiers.map((d, i) => (
+            <FadeIn key={d.id} delay={60 * i}>
+            <div className="flex items-center gap-2">
               <Link to={`/dossiers/${d.id}`} className="block no-underline flex-1">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -103,6 +109,7 @@ export function DossierListPage() {
               </Link>
               <DeleteButton dossierId={d.id} />
             </div>
+            </FadeIn>
           ))}
         </div>
       )}

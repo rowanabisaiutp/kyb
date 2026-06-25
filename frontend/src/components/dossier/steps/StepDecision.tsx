@@ -11,6 +11,7 @@ import { useLatestRiskAssessment } from "../../../hooks/useRiskAssessment";
 import { useDossierAuditLog } from "../../../hooks/useAuditLog";
 import { AuditTimeline } from "../../audit/AuditTimeline";
 import { Button } from "../../ui/Button";
+import { FadeIn } from "../../ui/FadeIn";
 
 interface Props {
   dossier: Dossier;
@@ -100,16 +101,16 @@ export function StepDecision({ dossier }: Props) {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <SummaryCard icon={FileText} label="Documentos" value={`${checklist?.total_present ?? 0}/${checklist?.total_required ?? 5} cargados`}
-          ok={(checklist?.total_present ?? 0) >= (checklist?.total_required ?? 5)} />
-        <SummaryCard icon={Search} label="Listas SAT" value={fiscalMatches === 0 ? "RFC limpio" : `${fiscalMatches} hallazgos`}
-          ok={fiscalMatches === 0} />
-        <SummaryCard icon={Shield} label="Conciliacion" value={discrepancies === 0 ? "Sin discrepancias" : `${discrepancies} discrepancias`}
-          ok={discrepancies === 0} />
-        <SummaryCard icon={Shield} label="Riesgo"
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <FadeIn delay={0}><SummaryCard icon={FileText} label="Documentos" value={`${checklist?.total_present ?? 0}/${checklist?.total_required ?? 5} cargados`}
+          ok={(checklist?.total_present ?? 0) >= (checklist?.total_required ?? 5)} /></FadeIn>
+        <FadeIn delay={80}><SummaryCard icon={Search} label="Listas SAT" value={fiscalMatches === 0 ? "RFC limpio" : `${fiscalMatches} hallazgos`}
+          ok={fiscalMatches === 0} /></FadeIn>
+        <FadeIn delay={160}><SummaryCard icon={Shield} label="Conciliacion" value={discrepancies === 0 ? "Sin discrepancias" : `${discrepancies} discrepancias`}
+          ok={discrepancies === 0} /></FadeIn>
+        <FadeIn delay={240}><SummaryCard icon={Shield} label="Riesgo"
           value={assessment ? `${assessment.total_score} pts — ${assessment.classification}` : "Sin calcular"}
-          ok={assessment?.classification === "safe"} />
+          ok={assessment?.classification === "safe"} /></FadeIn>
       </div>
 
       {isDecided ? (

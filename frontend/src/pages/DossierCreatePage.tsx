@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createEntity } from "../api/entities";
 import { Button } from "../components/ui/Button";
+import { FadeIn } from "../components/ui/FadeIn";
 import { Input } from "../components/ui/Input";
 import { useCreateDossier } from "../hooks/useDossiers";
 import { isValidRfcFormat } from "../utils/formatRfc";
@@ -56,7 +57,7 @@ export function DossierCreatePage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="w-full max-w-md">
+      <FadeIn className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-text">Nuevo Expediente KYB</h1>
           <p className="text-sm text-text-secondary mt-2">
@@ -105,7 +106,7 @@ export function DossierCreatePage() {
             Volver a expedientes
           </Link>
         </div>
-      </div>
+      </FadeIn>
     </div>
   );
 }

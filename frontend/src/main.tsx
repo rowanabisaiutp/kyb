@@ -13,10 +13,18 @@ const queryClient = new QueryClient({
   },
 });
 
+function dismissSplash() {
+  const splash = document.getElementById("splash");
+  if (splash) {
+    splash.classList.add("hide");
+    setTimeout(() => splash.remove(), 500);
+  }
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <App onReady={dismissSplash} />
     </QueryClientProvider>
   </StrictMode>,
 );
