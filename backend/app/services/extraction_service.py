@@ -91,12 +91,31 @@ async def extract_document_data(
         await db.flush()
         return None
 
+    # Step 1: Try to extract text from PDF locally (free, no quota)
+    from app.utils.pdf_extractor import extract_text_from_pdf
+
+    pdf_text = None
+    mime = document.mime_type or "application/pdf"
+    if mime == "application/pdf":
+        pdf_text = extract_text_from_pdf(file_data)
+        if pdf_text:
+            logger.info(
+                "PDF text extracted locally (%d chars), sending text to AI",
+                len(pdf_text),
+            )
+
+    # Step 2: Send to AI (text only if extracted, full file if not)
     extracted = None
     provider_used = None
 
     for provider_name, provider_fn in AI_PROVIDERS:
         try:
-            extracted = await provider_fn(document, file_data)
+            if pdf_text:
+                extracted = await _extract_from_text(
+                    provider_name, document.document_type, pdf_text
+                )
+            else:
+                extracted = await provider_fn(document, file_data)
             if extracted:
                 provider_used = provider_name
                 break
@@ -118,6 +137,7 @@ async def extract_document_data(
                 "document_type": document.document_type,
                 "fields_extracted": list(extracted.keys()),
                 "ai_provider": provider_used,
+                "used_local_text": bool(pdf_text),
             },
         )
     else:
@@ -125,6 +145,14 @@ async def extract_document_data(
         await db.flush()
 
     return extracted
+
+
+async def _extract_from_text(
+    provider_name: str, document_type: str, text: str
+) -> dict | None:
+    prompt = _get_prompt(document_type)
+    full_prompt = f"{prompt}\n\nTexto del documento:\n{text[:4000]}"
+    return await _call_text_ai_with_fallback(full_prompt)
 
 
 async def _extract_with_gemini(document: Document, file_data: bytes) -> dict | None:
@@ -271,10 +299,18 @@ CLASSIFY_PROMPT = (
 
 
 async def classify_document(file_data: bytes, mime_type: str) -> dict | None:
-    result = await _call_text_ai_with_fallback(
+    from app.utils.pdf_extractor import extract_text_from_pdf
+
+    if mime_type == "application/pdf":
+        text = extract_text_from_pdf(file_data)
+        if text:
+            return await _call_text_ai_with_fallback(
+                f"{CLASSIFY_PROMPT}\n\nTexto del documento:\n{text[:2000]}"
+            )
+
+    return await _call_text_ai_with_fallback(
         CLASSIFY_PROMPT, file_data=file_data, mime_type=mime_type
     )
-    return result
 
 
 SUMMARY_PROMPT = (

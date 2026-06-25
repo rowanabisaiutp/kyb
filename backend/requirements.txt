@@ -10,6 +10,7 @@ boto3
 anthropic
 google-genai
 groq
+PyMuPDF
 httpx
 python-dateutil
 unidecode
