@@ -60,6 +60,20 @@ def _get_prompt(document_type: str) -> str:
     return EXTRACTION_PROMPTS.get(document_type, DEFAULT_PROMPT)
 
 
+AI_PROVIDERS = []
+
+
+def _init_providers():
+    global AI_PROVIDERS
+    AI_PROVIDERS = []
+    if settings.GEMINI_API_KEY:
+        AI_PROVIDERS.append(("gemini", _extract_with_gemini))
+    if settings.GROQ_API_KEY:
+        AI_PROVIDERS.append(("groq", _extract_with_groq))
+    if settings.ANTHROPIC_API_KEY:
+        AI_PROVIDERS.append(("anthropic", _extract_with_anthropic))
+
+
 async def extract_document_data(
     db: AsyncSession,
     document: Document,
@@ -68,19 +82,30 @@ async def extract_document_data(
     document.extraction_status = ExtractionStatus.PROCESSING.value
     await db.flush()
 
-    extracted = None
+    if not AI_PROVIDERS:
+        _init_providers()
 
-    if settings.GEMINI_API_KEY:
-        extracted = await _extract_with_gemini(document, file_data)
-    elif settings.ANTHROPIC_API_KEY:
-        extracted = await _extract_with_anthropic(document, file_data)
-    else:
+    if not AI_PROVIDERS:
         logger.warning("No AI API key configured, skipping extraction")
         document.extraction_status = ExtractionStatus.FAILED.value
         await db.flush()
         return None
 
-    if extracted:
+    extracted = None
+    provider_used = None
+
+    for provider_name, provider_fn in AI_PROVIDERS:
+        try:
+            extracted = await provider_fn(document, file_data)
+            if extracted:
+                provider_used = provider_name
+                break
+            logger.warning("Provider %s returned no data, trying next", provider_name)
+        except Exception as e:
+            logger.warning("Provider %s failed: %s, trying next", provider_name, e)
+            continue
+
+    if extracted and provider_used:
         document.extracted_data = extracted
         document.extraction_status = ExtractionStatus.COMPLETED.value
         await db.flush()
@@ -92,7 +117,7 @@ async def extract_document_data(
                 "document_id": str(document.id),
                 "document_type": document.document_type,
                 "fields_extracted": list(extracted.keys()),
-                "ai_provider": "gemini" if settings.GEMINI_API_KEY else "anthropic",
+                "ai_provider": provider_used,
             },
         )
     else:
@@ -111,7 +136,7 @@ async def _extract_with_gemini(document: Document, file_data: bytes) -> dict | N
         mime = document.mime_type or "application/pdf"
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
+            model="gemini-2.0-flash",
             contents=[
                 genai.types.Part.from_bytes(data=file_data, mime_type=mime),
                 prompt,
@@ -172,6 +197,41 @@ async def _extract_with_anthropic(document: Document, file_data: bytes) -> dict 
         return None
 
 
+async def _extract_with_groq(document: Document, file_data: bytes) -> dict | None:
+    try:
+        from groq import Groq
+
+        client = Groq(api_key=settings.GROQ_API_KEY)
+        prompt = _get_prompt(document.document_type)
+        b64_data = base64.standard_b64encode(file_data).decode("utf-8")
+        mime = document.mime_type or "application/pdf"
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:{mime};base64,{b64_data}"},
+                    },
+                    {"type": "text", "text": prompt},
+                ],
+            }
+        ]
+
+        response = client.chat.completions.create(
+            model="llama-3.2-90b-vision-preview",
+            messages=messages,
+            max_tokens=2048,
+        )
+
+        return _parse_json_response(response.choices[0].message.content)
+
+    except Exception as e:
+        logger.error("Groq extraction failed for %s: %s", document.id, e)
+        return None
+
+
 def _parse_json_response(text: str) -> dict:
     text = text.strip()
     if text.startswith("```"):
@@ -211,23 +271,10 @@ CLASSIFY_PROMPT = (
 
 
 async def classify_document(file_data: bytes, mime_type: str) -> dict | None:
-    if not settings.GEMINI_API_KEY:
-        return None
-    try:
-        from google import genai
-
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            contents=[
-                genai.types.Part.from_bytes(data=file_data, mime_type=mime_type),
-                CLASSIFY_PROMPT,
-            ],
-        )
-        return _parse_json_response(response.text)
-    except Exception as e:
-        logger.error("Document classification failed: %s", e)
-        return None
+    result = await _call_text_ai_with_fallback(
+        CLASSIFY_PROMPT, file_data=file_data, mime_type=mime_type
+    )
+    return result
 
 
 SUMMARY_PROMPT = (
@@ -240,19 +287,76 @@ SUMMARY_PROMPT = (
 
 
 async def generate_dossier_summary(dossier_data: dict) -> dict | None:
-    if not settings.GEMINI_API_KEY:
-        return None
-    try:
-        from google import genai
+    context = json.dumps(dossier_data, ensure_ascii=False, default=str)
+    prompt = f"{SUMMARY_PROMPT}\n\nDatos del expediente:\n{context}"
+    return await _call_text_ai_with_fallback(prompt)
 
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
-        context = json.dumps(dossier_data, ensure_ascii=False, default=str)
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            contents=[f"{SUMMARY_PROMPT}\n\nDatos del expediente:\n{context}"],
+async def _call_text_ai_with_fallback(
+    prompt: str,
+    file_data: bytes | None = None,
+    mime_type: str = "application/pdf",
+) -> dict | None:
+    providers = []
+    if settings.GEMINI_API_KEY:
+        providers.append(("gemini", _gemini_text_call))
+    if settings.GROQ_API_KEY:
+        providers.append(("groq", _groq_text_call))
+
+    for name, fn in providers:
+        try:
+            result = await fn(prompt, file_data, mime_type)
+            if result:
+                return result
+        except Exception as e:
+            logger.warning("Text AI provider %s failed: %s, trying next", name, e)
+            continue
+
+    return None
+
+
+async def _gemini_text_call(
+    prompt: str, file_data: bytes | None, mime_type: str
+) -> dict | None:
+    from google import genai
+
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    contents = []
+    if file_data:
+        contents.append(
+            genai.types.Part.from_bytes(data=file_data, mime_type=mime_type)
         )
-        return _parse_json_response(response.text)
-    except Exception as e:
-        logger.error("Summary generation failed: %s", e)
-        return None
+    contents.append(prompt)
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", contents=contents
+    )
+    return _parse_json_response(response.text)
+
+
+async def _groq_text_call(
+    prompt: str, file_data: bytes | None, mime_type: str
+) -> dict | None:
+    from groq import Groq
+
+    client = Groq(api_key=settings.GROQ_API_KEY)
+    messages_content = []
+
+    if file_data:
+        b64 = base64.standard_b64encode(file_data).decode("utf-8")
+        messages_content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime_type};base64,{b64}"},
+            }
+        )
+    messages_content.append({"type": "text", "text": prompt})
+
+    response = client.chat.completions.create(
+        model="llama-3.2-90b-vision-preview"
+        if file_data
+        else "llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": messages_content}],
+        max_tokens=2048,
+    )
+    return _parse_json_response(response.choices[0].message.content)

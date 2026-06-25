@@ -9,6 +9,7 @@ python-multipart
 boto3
 anthropic
 google-genai
+groq
 httpx
 python-dateutil
 unidecode
