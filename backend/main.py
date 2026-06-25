@@ -64,16 +64,16 @@ async def _periodic_validity_check():
 
 
 async def _load_fiscal_lists():
-    while True:
-        try:
-            logger.info("Loading SAT fiscal lists...")
-            lists = await load_all_lists()
-            set_loaded_lists(lists)
-            total_rfcs = sum(len(v) for v in lists.values())
-            logger.info("SAT fiscal lists loaded: %d lists, %d total RFCs", len(lists), total_rfcs)
-        except Exception as e:
-            logger.error("Failed to load fiscal lists: %s", e)
-        await asyncio.sleep(86400)  # refresh every 24 hours
+    try:
+        logger.info("Loading SAT fiscal lists...")
+        lists = await load_all_lists()
+        set_loaded_lists(lists)
+        total_rfcs = sum(len(v) for v in lists.values())
+        logger.info(
+            "SAT fiscal lists loaded: %d lists, %d total RFCs", len(lists), total_rfcs
+        )
+    except Exception as e:
+        logger.error("Failed to load fiscal lists: %s", e)
 
 
 app = FastAPI(title="KYB Platform", version="1.0.0", lifespan=lifespan)
