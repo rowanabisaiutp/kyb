@@ -11,6 +11,7 @@ from app.services.validity_service import (
 )
 
 
+# Req: Score determinístico, explicable y testeable. Cada factor sube o baja el riesgo.
 @dataclass
 class RiskFactor:
     code: str
@@ -68,6 +69,7 @@ ART_69B_SITUATION_RULES: dict[str, tuple[str, int, bool, str]] = {
     ),
 }
 
+# Req: Documentos faltantes suman riesgo (acta, ID, comprobante, CSF, manifestacion).
 DOC_MISSING_RULES: dict[str, tuple[str, int, str]] = {
     "acta_constitutiva": ("DOC_MISSING_ACTA", 15, "Acta constitutiva faltante"),
     "identificacion_representante": (
@@ -97,6 +99,7 @@ DOC_EXPIRED_POINTS: dict[str, int] = {
     "identificacion_representante": 20,
 }
 
+# Req: Discrepancias entre documentos (RFC, razon social, domicilio, representante, fechas).
 RECON_RULES: dict[str, tuple[str, int, bool, str]] = {
     "rfc": ("RECON_RFC_MISMATCH", 35, True, "Discrepancia de RFC entre documentos"),
     "razon_social": (
@@ -131,6 +134,7 @@ RECON_RULES: dict[str, tuple[str, int, bool, str]] = {
     ),
 }
 
+# Req: Acciones sugeridas explicables por cada factor de riesgo detectado.
 SUGGESTED_ACTIONS: dict[str, str] = {
     "FISCAL_69_FIRMES": "Resolver creditos fiscales firmes ante el SAT",
     "FISCAL_69_EXIGIBLES": "Atender creditos fiscales exigibles",
@@ -164,6 +168,7 @@ SUGGESTED_ACTIONS: dict[str, str] = {
 }
 
 
+# Req: Clasificacion safe / review_required / high_risk. Bloquear aprobacion en riesgo critico.
 def classify(total_score: int, has_blocking: bool) -> str:
     if has_blocking:
         return "high_risk"
@@ -421,6 +426,7 @@ def _evaluate_reconciliation_rules(
                 discrepancy_fields.add(r.field_name)
 
 
+# Req: Completitud de representante legal, socios/accionistas o beneficiario controlador.
 def _evaluate_completeness_rules(
     entity: LegalEntity, factors: list[RiskFactor]
 ) -> None:

@@ -62,13 +62,13 @@ export function DashboardPage() {
               <Link
                 key={d.id}
                 to={`/dossiers/${d.id}`}
-                className="flex items-center justify-between px-6 py-3 hover:bg-gray-50 transition-colors no-underline"
+                className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 hover:bg-gray-50 transition-colors no-underline"
               >
-                <div>
-                  <p className="text-sm font-medium text-text">{d.entity?.razon_social ?? "—"}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text truncate">{d.entity?.razon_social ?? "—"}</p>
                   <p className="text-xs text-text-secondary">{d.entity?.rfc}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-1 sm:mt-0">
                   <StatusBadge status={d.status} />
                   <span className="text-xs text-text-secondary">{formatRelative(d.created_at)}</span>
                 </div>

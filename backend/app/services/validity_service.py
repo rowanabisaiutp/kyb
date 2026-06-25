@@ -9,6 +9,7 @@ def check_document_expiration(doc: Document) -> bool:
     return False
 
 
+# Req: CSF fuera del mes vigente suma riesgo.
 def check_csf_current_month(documents: list[Document]) -> bool:
     for doc in documents:
         if doc.document_type == "constancia_situacion_fiscal" and doc.extracted_data:
@@ -24,6 +25,7 @@ def check_csf_current_month(documents: list[Document]) -> bool:
     return False
 
 
+# Req: Revision de listas fiscales con mas de 3 meses marca needs_update.
 def check_fiscal_staleness(fiscal_checks: list[FiscalListCheck]) -> bool:
     if not fiscal_checks:
         return True
@@ -35,6 +37,7 @@ def get_expired_documents(documents: list[Document]) -> list[Document]:
     return [d for d in documents if check_document_expiration(d)]
 
 
+# Req: Expediente pasa a needs_update si doc vence, CSF no es del mes, o listas >3 meses.
 def needs_update(
     documents: list[Document], fiscal_checks: list[FiscalListCheck]
 ) -> bool:

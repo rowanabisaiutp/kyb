@@ -23,6 +23,7 @@ FIELD_SEVERITY = {
     "fecha_constitucion": "info",
 }
 
+# Req: Conciliar datos entre documentos (RFC, razon social, domicilio, representante, fechas).
 FIELD_EXTRACTORS: dict[str, dict[str, list[str]]] = {
     "rfc": {
         "constancia_situacion_fiscal": ["rfc"],
@@ -83,6 +84,7 @@ def _compare_values(field: str, val_a: str | None, val_b: str | None) -> bool:
     return texts_match(val_a, val_b)
 
 
+# Req: Marcar discrepancias materiales entre CSF, acta, poder, ID y formulario.
 async def run_reconciliation(
     db: AsyncSession,
     *,

@@ -10,6 +10,7 @@ from app.services.audit_service import log_action
 
 logger = logging.getLogger(__name__)
 
+# Req: Uso obligatorio de AI para extraccion de datos de documentos del expediente KYB.
 EXTRACTION_PROMPTS: dict[str, str] = {
     "constancia_situacion_fiscal": (
         "Extrae los siguientes datos de esta Constancia de Situacion Fiscal (CSF) del SAT. "

@@ -29,28 +29,30 @@ export function DossierDetailPage() {
   if (!dossier) return <p className="text-text-secondary text-center py-12">Expediente no encontrado.</p>;
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] -m-6 lg:-m-8">
-      <StepSidebar
-        currentStep={currentStep}
-        steps={completion.steps}
-        onStepClick={goToStep}
-        entityName={dossier.entity?.razon_social ?? ""}
-        entityRfc={dossier.entity?.rfc ?? ""}
-        riskScore={dossier.current_risk_score}
-        riskClassification={dossier.current_risk_classification}
-      />
+    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] -mx-4 -mt-0 lg:-m-8">
+      <div className="hidden lg:block">
+        <StepSidebar
+          currentStep={currentStep}
+          steps={completion.steps}
+          onStepClick={goToStep}
+          entityName={dossier.entity?.razon_social ?? ""}
+          entityRfc={dossier.entity?.rfc ?? ""}
+          riskScore={dossier.current_risk_score}
+          riskClassification={dossier.current_risk_classification}
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between px-8 py-4 border-b border-border">
-          <div className="flex items-center gap-2 text-sm text-text-secondary">
-            <Link to="/dossiers" className="hover:text-primary flex items-center gap-1">
-              <ArrowLeft className="w-4 h-4" /> Expedientes
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex items-center justify-between px-4 lg:px-8 py-3 lg:py-4 border-b border-border">
+          <div className="flex items-center gap-2 text-sm text-text-secondary min-w-0">
+            <Link to="/dossiers" className="hover:text-primary flex items-center gap-1 shrink-0">
+              <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Expedientes</span>
             </Link>
             <span>/</span>
-            <span className="text-text font-medium">{dossier.entity?.razon_social}</span>
+            <span className="text-text font-medium truncate">{dossier.entity?.razon_social}</span>
           </div>
-          <span className="text-xs text-text-secondary">
-            Paso {currentStep + 1} de {completion.totalSteps}
+          <span className="text-xs text-text-secondary shrink-0 ml-2">
+            {currentStep + 1}/{completion.totalSteps}
           </span>
         </div>
 
@@ -61,7 +63,21 @@ export function DossierDetailPage() {
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="lg:hidden flex gap-1 px-3 py-2 overflow-x-auto border-b border-border bg-gray-50">
+          {completion.steps.map((done, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => goToStep(i)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-colors
+                ${i === currentStep ? "bg-primary text-white" : done ? "bg-step-complete/10 text-step-complete" : "bg-gray-200 text-text-secondary"}`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-4 lg:py-6">
           {currentStep === 0 && <StepDatosEmpresa dossier={dossier} onComplete={() => goToStep(1)} />}
           {currentStep === 1 && <StepDocumentos dossierId={dossier.id} />}
           {currentStep === 2 && <StepVerificacionSAT dossierId={dossier.id} />}

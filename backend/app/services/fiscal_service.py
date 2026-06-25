@@ -40,6 +40,7 @@ def get_lists_status() -> dict:
     }
 
 
+# Req: Guardar fuente, fecha/hora, RFC buscado, resultado y referencia al listado usado.
 async def check_rfc_in_lists(
     db: AsyncSession,
     *,

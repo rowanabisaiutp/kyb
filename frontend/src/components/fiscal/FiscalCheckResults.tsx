@@ -35,7 +35,7 @@ export function FiscalCheckResults({ checks, isLoading, onRunCheck, isRunning }:
   return (
     <div className="space-y-6">
       <Card>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Consulta de Listas Fiscales SAT</CardTitle>
           <Button onClick={onRunCheck} loading={isRunning} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
@@ -70,22 +70,22 @@ export function FiscalCheckResults({ checks, isLoading, onRunCheck, isRunning }:
               {checks.map((check) => (
                 <div
                   key={check.id}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                  className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border ${
                     check.found ? "border-red-200 bg-red-50" : "border-border"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <Shield className={`h-4 w-4 ${check.found ? "text-red-500" : "text-green-500"}`} />
-                    <div>
-                      <p className="text-sm font-medium text-text">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Shield className={`h-4 w-4 shrink-0 ${check.found ? "text-red-500" : "text-green-500"}`} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text truncate">
                         {LIST_LABELS[check.list_type] ?? check.list_type}
                       </p>
-                      <p className="text-xs text-text-secondary">{check.list_reference}</p>
+                      <p className="text-xs text-text-secondary truncate">{check.list_reference}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 ml-7 sm:ml-0 shrink-0">
                     <FiscalListBadge found={check.found} />
-                    <span className="text-xs text-text-secondary">{formatDateTime(check.checked_at)}</span>
+                    <span className="text-xs text-text-secondary whitespace-nowrap">{formatDateTime(check.checked_at)}</span>
                   </div>
                 </div>
               ))}

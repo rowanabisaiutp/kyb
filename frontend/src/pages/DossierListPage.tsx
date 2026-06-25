@@ -38,7 +38,7 @@ export function DossierListPage() {
       />
 
       <Card className="mb-6">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
             <input
@@ -52,7 +52,7 @@ export function DossierListPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-light"
+            className="rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-light w-full sm:w-auto"
           >
             <option value="">Todos los estados</option>
             <option value="draft">Borrador</option>
@@ -84,12 +84,12 @@ export function DossierListPage() {
             <div key={d.id} className="flex items-center gap-2">
               <Link to={`/dossiers/${d.id}`} className="block no-underline flex-1">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-text">{d.entity?.razon_social ?? "—"}</p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-text truncate">{d.entity?.razon_social ?? "—"}</p>
                       <p className="text-xs text-text-secondary mt-0.5">RFC: {d.entity?.rfc}</p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                       {d.current_risk_score != null && (
                         <span className="text-sm font-mono text-text-secondary">
                           Score: {d.current_risk_score}

@@ -21,7 +21,7 @@ export function StepNavigation({
   loading,
 }: StepNavigationProps) {
   return (
-    <div className="flex items-center justify-between pt-6 mt-6 border-t border-border">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-6 mt-6 border-t border-border">
       {currentStep > 0 ? (
         <Button variant="ghost" onClick={onPrevious}>
           <ArrowLeft className="w-4 h-4" /> Paso Anterior

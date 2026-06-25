@@ -11,6 +11,7 @@ from app.services.document_service import list_documents
 from app.services.validity_service import needs_update
 
 
+# Req: Validar vigencias y pasar expediente a needs_update automaticamente.
 async def check_and_update_validity(
     db: AsyncSession, dossier_id: uuid.UUID
 ) -> str | None:
@@ -43,6 +44,7 @@ async def check_and_update_validity(
     return dossier.status
 
 
+# Req: Bloquear aprobacion cuando exista riesgo critico (high_risk).
 async def approve_dossier(
     db: AsyncSession, dossier_id: uuid.UUID, approved_by: str
 ) -> Dossier:

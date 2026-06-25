@@ -1,59 +1,10 @@
 import csv
 import io
 import logging
-
 import httpx
+from app.utils.data.data_csv import SAT_LISTS
 
 logger = logging.getLogger(__name__)
-
-SAT_LISTS = {
-    "art_69_cancelados": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGR/Cancelados.csv",
-        "article": "69 CFF",
-        "description": "Contribuyentes con creditos fiscales cancelados",
-    },
-    "art_69_exigibles": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGR/Exigibles.csv",
-        "article": "69 CFF",
-        "description": "Contribuyentes con creditos fiscales exigibles",
-    },
-    "art_69_firmes": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGR/Firmes.csv",
-        "article": "69 CFF",
-        "description": "Contribuyentes con creditos fiscales firmes",
-    },
-    "art_69_no_localizados": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGR/No_localizados.csv",
-        "article": "69 CFF",
-        "description": "Contribuyentes no localizados",
-    },
-    "art_69_sentencias": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGR/Sentencias.csv",
-        "article": "69 CFF",
-        "description": "Contribuyentes con sentencia condenatoria por delito fiscal",
-    },
-    "art_69_csd_sin_efectos": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGR/CSDsinefectos.csv",
-        "article": "69 CFF",
-        "description": "Contribuyentes con CSD sin efectos",
-    },
-    "art_69b": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGAFF/Listado_completo_69-B.csv",
-        "article": "69-B CFF",
-        "description": "Operaciones presuntamente inexistentes (EFOS) - listado completo",
-    },
-    "art_69b_bis": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGGC/Listado_69_B_Bis_Completo.csv",
-        "article": "69-B Bis CFF",
-        "description": "Transmision indebida de perdidas fiscales",
-    },
-    "art_49bis": {
-        "url": "https://wu1agsprosta001.blob.core.windows.net/agsc-publicaciones/Datos_abiertos/Documents_AGAFF/Listado_completo_69-B.csv",
-        "article": "49 Bis CFF",
-        "description": "Operaciones con EFOS (fuente: listado Art. 69-B, unica base publica disponible del SAT)",
-    },
-}
-
 
 def _find_rfc_column(headers: list[str]) -> int | None:
     for i, h in enumerate(headers):
@@ -65,6 +16,7 @@ def _find_rfc_column(headers: list[str]) -> int | None:
     return None
 
 
+# Req: Consultar listas fiscales publicas del SAT con datos reales, sin mocks.
 async def download_and_parse_csv(list_key: str) -> dict[str, list[dict]]:
     config = SAT_LISTS[list_key]
     url = config["url"]
@@ -138,6 +90,7 @@ async def load_all_lists() -> dict[str, dict[str, list[dict]]]:
     return all_lists
 
 
+# Req: Cada revision guarda fuente, RFC buscado, resultado y referencia al listado.
 def search_rfc(all_lists: dict[str, dict[str, list[dict]]], rfc: str) -> list[dict]:
     rfc = rfc.strip().upper()
     results = []

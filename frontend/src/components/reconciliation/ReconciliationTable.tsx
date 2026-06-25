@@ -39,7 +39,7 @@ export function ReconciliationTable({ results, isLoading, onRun, isRunning }: Re
   return (
     <div className="space-y-6">
       <Card>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle>Conciliacion de Datos</CardTitle>
           <Button onClick={onRun} loading={isRunning} variant="secondary" size="sm">
             <RefreshCw className="h-4 w-4" />
@@ -93,7 +93,7 @@ export function ReconciliationTable({ results, isLoading, onRun, isRunning }: Re
                     <SeverityBadge severity={r.severity} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                     <div>
                       <p className="text-xs text-text-secondary mb-1">
                         {SOURCE_LABELS[r.source_a] ?? r.source_a}
