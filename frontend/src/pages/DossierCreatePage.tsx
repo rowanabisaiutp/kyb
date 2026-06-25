@@ -35,9 +35,19 @@ export function DossierCreatePage() {
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const detail = err.response?.data?.detail;
-        setError(typeof detail === "string" ? detail : "Error al crear el expediente");
+        if (typeof detail === "string") {
+          if (detail.includes("already exists")) {
+            setError("Ya existe un expediente con este RFC. Ve a la lista de expedientes para encontrarlo.");
+          } else if (detail.includes("RFC format invalid")) {
+            setError("El formato del RFC no es valido. Debe tener 12-13 caracteres (ej: XAXX010101000).");
+          } else {
+            setError(detail);
+          }
+        } else {
+          setError("Error al crear el expediente. Verifica los datos e intenta de nuevo.");
+        }
       } else {
-        setError("Error al crear el expediente");
+        setError("Error de conexion. Intenta de nuevo.");
       }
     } finally {
       setLoading(false);
