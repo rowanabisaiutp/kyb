@@ -14,7 +14,9 @@ TEST_DB_URL = os.environ.get(
 )
 
 _engine = create_async_engine(TEST_DB_URL, echo=False)
-_session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+_session_factory = async_sessionmaker(
+    _engine, class_=AsyncSession, expire_on_commit=False
+)
 
 import app.database as db_module
 import app.dependencies as dep_module
@@ -36,6 +38,7 @@ app.dependency_overrides[dep_module.get_db] = _get_test_db
 @pytest.fixture(scope="session")
 def event_loop():
     import asyncio
+
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()

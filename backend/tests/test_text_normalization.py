@@ -78,19 +78,16 @@ class TestTextsMatch:
 
 class TestBusinessNamesMatch:
     def test_same_name_different_suffix(self):
-        assert business_names_match(
-            "EMPRESA TEST S.A. DE C.V.",
-            "EMPRESA TEST SA DE CV"
-        ) is True
+        assert (
+            business_names_match("EMPRESA TEST S.A. DE C.V.", "EMPRESA TEST SA DE CV")
+            is True
+        )
 
     def test_different_names(self):
-        assert business_names_match(
-            "EMPRESA ALPHA SA DE CV",
-            "EMPRESA BETA SA DE CV"
-        ) is False
+        assert (
+            business_names_match("EMPRESA ALPHA SA DE CV", "EMPRESA BETA SA DE CV")
+            is False
+        )
 
     def test_accents(self):
-        assert business_names_match(
-            "COMPAÑIA TEST SA",
-            "COMPANIA TEST SA"
-        ) is True
+        assert business_names_match("COMPAÑIA TEST SA", "COMPANIA TEST SA") is True

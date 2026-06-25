@@ -1,6 +1,11 @@
 from datetime import date, timedelta
 
-from app.utils.date_utils import is_current_month, is_expired, is_older_than_months, safe_parse_date
+from app.utils.date_utils import (
+    is_current_month,
+    is_expired,
+    is_older_than_months,
+    safe_parse_date,
+)
 
 
 class TestIsCurrentMonth:
