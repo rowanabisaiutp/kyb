@@ -20,7 +20,9 @@ from app.services.risk_engine import calculate_risk
 router = APIRouter(tags=["risk"])
 
 
-async def _fetch_risk_inputs(db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier):
+async def _fetch_risk_inputs(
+    db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier
+):
     result = await db.execute(
         select(LegalEntity)
         .where(LegalEntity.id == dossier.entity_id)
@@ -50,7 +52,9 @@ async def _fetch_risk_inputs(db: AsyncSession, dossier_id: uuid.UUID, dossier: D
     return entity, documents, fiscal_checks, reconciliation_results
 
 
-async def _persist_assessment(db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier, assessment):
+async def _persist_assessment(
+    db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier, assessment
+):
     factors_data = [asdict(f) for f in assessment.factors]
 
     risk_record = RiskAssessment(
@@ -85,7 +89,9 @@ async def _persist_assessment(db: AsyncSession, dossier_id: uuid.UUID, dossier: 
     return risk_record, factors_data
 
 
-def _to_response(record: RiskAssessment, factors_data: list, suggested_actions: list) -> RiskAssessmentResponse:
+def _to_response(
+    record: RiskAssessment, factors_data: list, suggested_actions: list
+) -> RiskAssessmentResponse:
     return RiskAssessmentResponse(
         id=record.id,
         dossier_id=record.dossier_id,
@@ -109,7 +115,9 @@ async def calculate_dossier_risk(
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier not found")
 
-    entity, documents, fiscal_checks, reconciliation_results = await _fetch_risk_inputs(db, dossier_id, dossier)
+    entity, documents, fiscal_checks, reconciliation_results = (
+        await _fetch_risk_inputs(db, dossier_id, dossier)
+    )
 
     assessment = calculate_risk(
         entity=entity,
@@ -118,7 +126,9 @@ async def calculate_dossier_risk(
         reconciliation_results=reconciliation_results,
     )
 
-    record, factors_data = await _persist_assessment(db, dossier_id, dossier, assessment)
+    record, factors_data = await _persist_assessment(
+        db, dossier_id, dossier, assessment
+    )
     return _to_response(record, factors_data, assessment.suggested_actions)
 
 
@@ -184,7 +194,9 @@ async def get_latest_risk_assessment(
     )
 
 
-async def _build_summary_data(db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier) -> dict:
+async def _build_summary_data(
+    db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier
+) -> dict:
     from app.services.document_service import get_missing_documents
 
     entity_result = await db.execute(

@@ -14,12 +14,15 @@ from app.services.audit_service import log_action
 
 logger = logging.getLogger(__name__)
 
-# EXTRACCION AI: prompts por tipo de documento. La AI devuelve JSON con campos clave.
-# Los datos extraidos alimentan la conciliacion (RFC, razon social, domicilio, rep legal, fechas).
+# EXTRACCION AI: prompts por tipo de documento.
+# La AI devuelve JSON con campos clave.
+# Alimentan la conciliacion (RFC, razon social, domicilio, etc).
 EXTRACTION_PROMPTS: dict[str, str] = {
     "constancia_situacion_fiscal": (
-        "Extrae los siguientes datos de esta Constancia de Situacion Fiscal (CSF) del SAT. "
-        "Responde UNICAMENTE con un JSON valido, sin explicaciones:\n"
+        "Extrae los siguientes datos de esta Constancia de"
+        " Situacion Fiscal (CSF) del SAT. "
+        "Responde UNICAMENTE con un JSON valido,"
+        " sin explicaciones:\n"
         '{"rfc": "", "razon_social": "", "domicilio_fiscal": "", '
         '"codigo_postal": "", "regimen_fiscal": "", "fecha_emision": ""}'
     ),
@@ -44,14 +47,18 @@ EXTRACTION_PROMPTS: dict[str, str] = {
         '"fecha_emision": "", "tipo_comprobante": ""}'
     ),
     "poder_representacion": (
-        "Extrae los siguientes datos de este poder notarial o evidencia de representacion. "
-        "Responde UNICAMENTE con un JSON valido, sin explicaciones:\n"
+        "Extrae los siguientes datos de este poder notarial"
+        " o evidencia de representacion. "
+        "Responde UNICAMENTE con un JSON valido,"
+        " sin explicaciones:\n"
         '{"representante_legal": "", "tipo_poder": "", '
         '"fecha_otorgamiento": "", "notario": "", "numero_escritura": ""}'
     ),
     "manifestacion_protesta": (
-        "Extrae los siguientes datos de esta manifestacion bajo protesta de decir verdad. "
-        "Responde UNICAMENTE con un JSON valido, sin explicaciones:\n"
+        "Extrae los siguientes datos de esta manifestacion"
+        " bajo protesta de decir verdad. "
+        "Responde UNICAMENTE con un JSON valido,"
+        " sin explicaciones:\n"
         '{"declarante": "", "fecha": "", "contenido_resumen": ""}'
     ),
 }
@@ -88,11 +95,16 @@ def _extract_pdf_text(file_data: bytes, mime: str) -> str | None:
         return None
     text = extract_text_from_pdf(file_data)
     if text:
-        logger.info("PDF text extracted locally (%d chars), sending text to AI", len(text))
+        logger.info(
+            "PDF text extracted locally (%d chars), sending text to AI",
+            len(text),
+        )
     return text
 
 
-async def _try_providers(prompt: str, file_data: bytes, mime: str, pdf_text: str | None):
+async def _try_providers(
+    prompt: str, file_data: bytes, mime: str, pdf_text: str | None
+):
     for provider_name, provider_fn in _PROVIDERS:
         try:
             if pdf_text:
@@ -102,7 +114,9 @@ async def _try_providers(prompt: str, file_data: bytes, mime: str, pdf_text: str
                 extracted = await provider_fn(prompt, file_data, mime)
             if extracted:
                 return extracted, provider_name
-            logger.warning("Provider %s returned no data, trying next", provider_name)
+            logger.warning(
+                "Provider %s returned no data, trying next", provider_name
+            )
         except Exception as e:
             logger.warning("Provider %s failed: %s, trying next", provider_name, e)
     return None, None

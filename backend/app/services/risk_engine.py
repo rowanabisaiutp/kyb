@@ -50,7 +50,8 @@ def classify(total_score: int, has_blocking: bool) -> str:
 
 
 # PUNTO CENTRAL: calcula score sumando factores de 4 categorias.
-# Entrada: entity + docs + fiscal_checks + reconciliation. Salida: score + clasificacion + factores.
+# Entrada: entity + docs + fiscal_checks + reconciliation.
+# Salida: score + clasificacion + factores.
 def calculate_risk(
     *,
     entity: LegalEntity,
@@ -205,12 +206,20 @@ def _evaluate_49bis_check(
             RiskFactor(
                 code="FISCAL_49BIS",
                 points=0,
-                description="Art. 49 Bis CFF: cubierto por hallazgo en Art. 69-B (misma fuente publica del SAT)",
+                description=(
+                    "Art. 49 Bis CFF: cubierto por hallazgo"
+                    " en Art. 69-B (misma fuente publica del SAT)"
+                ),
                 category="fiscal",
                 blocking=False,
                 details={
                     "source_url": fc.source_url,
-                    "justification": "El listado Art. 69-B del SAT es la unica fuente publica disponible para Art. 49 Bis CFF. El riesgo ya se contabiliza en la regla Art. 69-B.",
+                    "justification": (
+                        "El listado Art. 69-B del SAT es la unica"
+                        " fuente publica disponible para Art. 49"
+                        " Bis CFF. El riesgo ya se contabiliza en"
+                        " la regla Art. 69-B."
+                    ),
                 },
             )
         )
@@ -225,7 +234,11 @@ def _evaluate_49bis_check(
             blocking=True,
             details={
                 "source_url": fc.source_url,
-                "justification": "Fuente: listado Art. 69-B del SAT, unica base publica disponible para Art. 49 Bis CFF.",
+                "justification": (
+                    "Fuente: listado Art. 69-B del SAT, unica"
+                    " base publica disponible para Art. 49"
+                    " Bis CFF."
+                ),
             },
         )
     )

@@ -24,7 +24,12 @@ router = APIRouter(tags=["documents"])
 MAX_FILE_SIZE = 10 * 1024 * 1024
 
 
-async def _validate_upload(dossier_id: uuid.UUID, document_type: str, file: UploadFile, db: AsyncSession):
+async def _validate_upload(
+    dossier_id: uuid.UUID,
+    document_type: str,
+    file: UploadFile,
+    db: AsyncSession,
+):
     from app.models.document import DocumentType
 
     dossier = await db.get(Dossier, dossier_id)
