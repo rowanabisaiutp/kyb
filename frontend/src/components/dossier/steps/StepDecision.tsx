@@ -1,5 +1,4 @@
 import axios from "axios";
-import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getDossierSummary, type DossierSummary } from "../../../api/ai";
 import type { Dossier } from "../../../types";
@@ -10,8 +9,9 @@ import { useReconciliation } from "../../../hooks/useReconciliation";
 import { useLatestRiskAssessment } from "../../../hooks/useRiskAssessment";
 import { useDossierAuditLog } from "../../../hooks/useAuditLog";
 import { AuditTimeline } from "../../audit/AuditTimeline";
-import { Button } from "../../ui/Button";
 import { FadeIn } from "../../ui/FadeIn";
+import { AISummarySection } from "./AISummarySection";
+import { ApprovalActions } from "./ApprovalActions";
 import { SummaryCard } from "./SummaryCard";
 
 interface Props {
@@ -29,50 +29,33 @@ export function StepDecision({ dossier }: Props) {
   const [showAudit, setShowAudit] = useState(false);
   const [summary, setSummary] = useState<DossierSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setSummaryLoading(true);
+    setSummaryError(false);
     getDossierSummary(dossier.id)
       .then((s) => { if (!cancelled) setSummary(s); })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setSummaryError(true); })
       .finally(() => { if (!cancelled) setSummaryLoading(false); });
     return () => { cancelled = true; };
   }, [dossier.id]);
 
-  const isHighRisk = dossier.current_risk_classification === "high_risk";
-  const isDecided = dossier.status === "approved" || dossier.status === "rejected";
   const fiscalMatches = fiscalChecks?.filter((c) => c.found).length ?? 0;
   const discrepancies = reconciliation?.filter((r) => !r.match).length ?? 0;
 
-  async function handleApprove() {
+  async function handleStatusChange(targetStatus: "in_review" | "approved" | "rejected" | "needs_update", extra?: Record<string, string>) {
     setError(null);
     try {
       const status = dossier.status;
       if (status === "draft" || status === "needs_update") {
         await updateStatus.mutateAsync({ status: "in_review" });
       }
-      await updateStatus.mutateAsync({ status: "approved", approved_by: "Compliance Officer" });
+      await updateStatus.mutateAsync({ status: targetStatus, ...extra });
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.detail ?? "Error al aprobar");
-      } else {
-        setError("Error de conexion. Intenta de nuevo.");
-      }
-    }
-  }
-
-  async function handleReject() {
-    setError(null);
-    try {
-      const status = dossier.status;
-      if (status === "draft" || status === "needs_update") {
-        await updateStatus.mutateAsync({ status: "in_review" });
-      }
-      await updateStatus.mutateAsync({ status: "rejected", notes: "Rechazado tras evaluacion" });
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.detail ?? "Error al rechazar");
+        setError(err.response?.data?.detail ?? `Error al cambiar estado`);
       } else {
         setError("Error de conexion. Intenta de nuevo.");
       }
@@ -86,25 +69,7 @@ export function StepDecision({ dossier }: Props) {
         Resumen del expediente y decision de aprobacion.
       </p>
 
-      {summaryLoading ? (
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-purple-700">Generando resumen ejecutivo con AI...</p>
-          </div>
-        </div>
-      ) : summary ? (
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span className="text-sm font-semibold text-purple-700">Resumen Ejecutivo AI</span>
-          </div>
-          <p className="text-sm text-text">{summary.resumen}</p>
-          <p className="text-xs text-purple-600 mt-2 font-medium">
-            Recomendacion AI: {summary.recomendacion}
-          </p>
-        </div>
-      ) : null}
+      <AISummarySection summary={summary} loading={summaryLoading} error={summaryError} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <FadeIn delay={0}><SummaryCard label="Documentos" value={`${checklist?.total_present ?? 0}/${checklist?.total_required ?? 5} cargados`}
@@ -118,35 +83,13 @@ export function StepDecision({ dossier }: Props) {
           ok={assessment?.classification === "safe"} /></FadeIn>
       </div>
 
-      {isDecided ? (
-        <div className={`p-4 rounded-lg text-center ${dossier.status === "approved" ? "bg-safe-bg" : "bg-danger-bg"}`}>
-          <p className={`text-lg font-semibold ${dossier.status === "approved" ? "text-safe" : "text-danger"}`}>
-            {dossier.status === "approved" ? "Expediente Aprobado" : "Expediente Rechazado"}
-          </p>
-          {dossier.approved_by && <p className="text-sm text-text-secondary mt-1">Por: {dossier.approved_by}</p>}
-        </div>
-      ) : (
-        <>
-          {isHighRisk && (
-            <div className="bg-danger-bg border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-danger font-medium">
-                Este expediente tiene riesgo alto y no puede ser aprobado.
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-4">
-            <Button onClick={handleApprove} disabled={isHighRisk} loading={updateStatus.isPending} size="lg">
-              Aprobar Expediente
-            </Button>
-            <Button variant="danger" onClick={handleReject} loading={updateStatus.isPending} size="lg">
-              Rechazar Expediente
-            </Button>
-          </div>
-
-          {error && <p className="text-sm text-danger mt-3">{error}</p>}
-        </>
-      )}
+      <ApprovalActions
+        dossier={dossier}
+        onApprove={() => handleStatusChange("approved", { approved_by: "Compliance Officer" })}
+        onReject={() => handleStatusChange("rejected", { notes: "Rechazado tras evaluacion" })}
+        isPending={updateStatus.isPending}
+        error={error}
+      />
 
       <div className="mt-8">
         <button type="button" onClick={() => setShowAudit(!showAudit)}

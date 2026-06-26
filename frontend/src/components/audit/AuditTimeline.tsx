@@ -1,26 +1,8 @@
 import { Clock } from "lucide-react";
+import { ACTION_LABELS } from "../../constants";
 import type { AuditLogEntry } from "../../types";
 import { formatDateTime } from "../../utils/formatDate";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
-
-const ACTION_LABELS: Record<string, string> = {
-  "entity.created": "Entidad creada",
-  "entity.updated": "Entidad actualizada",
-  "dossier.created": "Expediente creado",
-  "dossier.status_changed": "Estado cambiado",
-  "dossier.approved": "Expediente aprobado",
-  "dossier.rejected": "Expediente rechazado",
-  "dossier.auto_needs_update": "Requiere actualizacion (automatico)",
-  "document.uploaded": "Documento cargado",
-  "document.deleted": "Documento eliminado",
-  "extraction.completed": "Extraccion completada",
-  "extraction.failed": "Extraccion fallida",
-  "fiscal.checked": "Listas fiscales consultadas",
-  "reconciliation.run": "Conciliacion ejecutada",
-  "risk.calculated": "Score de riesgo calculado",
-  "representative.added": "Representante agregado",
-  "shareholder.added": "Socio/accionista agregado",
-};
 
 interface AuditTimelineProps {
   entries: AuditLogEntry[] | undefined;

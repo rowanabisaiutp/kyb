@@ -1,6 +1,7 @@
 import { Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { DOSSIER_STATUS_LABELS } from "../utils/statusLabels";
 import { Header } from "../components/layout/Header";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -10,6 +11,10 @@ import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { useDeleteDossier, useDossiers } from "../hooks/useDossiers";
 import { formatDate } from "../utils/formatDate";
+
+const STATUS_FILTER_OPTIONS = Object.entries(DOSSIER_STATUS_LABELS)
+  .filter(([key]) => key !== "needs_update" && key !== "safe")
+  .map(([value, label]) => ({ value, label }));
 
 export function DossierListPage() {
   const [search, setSearch] = useState("");
@@ -59,13 +64,9 @@ export function DossierListPage() {
             className="rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-light w-full sm:w-auto"
           >
             <option value="">Todos los estados</option>
-            <option value="draft">Borrador</option>
-            <option value="in_review">En Revision</option>
-            <option value="safe">Seguro</option>
-            <option value="review_required">Requiere Revision</option>
-            <option value="high_risk">Alto Riesgo</option>
-            <option value="approved">Aprobado</option>
-            <option value="rejected">Rechazado</option>
+            {STATUS_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </div>
         </Card>

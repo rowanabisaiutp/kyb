@@ -10,6 +10,8 @@ import { useDossiers, useDossierStats } from "../hooks/useDossiers";
 import { formatRelative } from "../utils/formatDate";
 import type { DossierStatus } from "../types";
 
+const RECENT_DOSSIERS_LIMIT = 10;
+
 const STAT_CARDS: { key: DossierStatus; label: string; icon: typeof FileText; color: string }[] = [
   { key: "draft", label: "Borradores", icon: FileText, color: "text-gray-500" },
   { key: "in_review", label: "En Revision", icon: AlertTriangle, color: "text-blue-500" },
@@ -64,7 +66,7 @@ export function DashboardPage() {
             <p className="text-sm text-text-secondary py-4">No hay expedientes creados aun.</p>
           ) : (
             <div className="divide-y divide-border -mx-6">
-              {recentDossiers.slice(0, 10).map((d) => (
+              {recentDossiers.slice(0, RECENT_DOSSIERS_LIMIT).map((d) => (
                 <Link
                   key={d.id}
                   to={`/dossiers/${d.id}`}

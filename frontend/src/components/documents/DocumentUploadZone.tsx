@@ -8,6 +8,9 @@ import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { Select } from "../ui/Select";
 
+const AI_CONFIDENCE_THRESHOLD = 50;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
 interface DocumentUploadZoneProps {
   onUpload: (file: File, documentType: string, fechaEmision?: string, fechaVencimiento?: string) => void;
   loading?: boolean;
@@ -23,22 +26,24 @@ export function DocumentUploadZone({ onUpload, loading }: DocumentUploadZoneProp
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [classifying, setClassifying] = useState(false);
   const [autoDetected, setAutoDetected] = useState(false);
+  const [classifyError, setClassifyError] = useState(false);
 
   const onDrop = useCallback(async (accepted: File[]) => {
     if (accepted.length === 0) return;
     const file = accepted[0];
     setSelectedFile(file);
     setAutoDetected(false);
+    setClassifyError(false);
 
     setClassifying(true);
     try {
       const result = await classifyDocument(file);
-      if (result?.document_type && result.confidence > 50) {
+      if (result?.document_type && result.confidence > AI_CONFIDENCE_THRESHOLD) {
         setSelectedType(result.document_type as DocumentType);
         setAutoDetected(true);
       }
     } catch {
-      // classification failed silently, user selects manually
+      setClassifyError(true);
     } finally {
       setClassifying(false);
     }
@@ -51,7 +56,7 @@ export function DocumentUploadZone({ onUpload, loading }: DocumentUploadZoneProp
       "image/jpeg": [".jpg", ".jpeg"],
       "image/png": [".png"],
     },
-    maxSize: 10 * 1024 * 1024,
+    maxSize: MAX_FILE_SIZE,
     multiple: false,
   });
 
@@ -74,6 +79,9 @@ export function DocumentUploadZone({ onUpload, loading }: DocumentUploadZoneProp
           )}
           {classifying && (
             <Badge className="bg-blue-100 text-blue-700 animate-pulse">Detectando tipo con AI...</Badge>
+          )}
+          {classifyError && (
+            <Badge className="bg-yellow-100 text-yellow-700">Selecciona el tipo manualmente</Badge>
           )}
         </div>
         <Select

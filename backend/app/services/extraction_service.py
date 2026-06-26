@@ -81,6 +81,33 @@ def _init_providers():
         _PROVIDERS.append(("anthropic", extract_with_anthropic))
 
 
+def _extract_pdf_text(file_data: bytes, mime: str) -> str | None:
+    from app.utils.pdf_extractor import extract_text_from_pdf
+
+    if mime != "application/pdf":
+        return None
+    text = extract_text_from_pdf(file_data)
+    if text:
+        logger.info("PDF text extracted locally (%d chars), sending text to AI", len(text))
+    return text
+
+
+async def _try_providers(prompt: str, file_data: bytes, mime: str, pdf_text: str | None):
+    for provider_name, provider_fn in _PROVIDERS:
+        try:
+            if pdf_text:
+                full_prompt = f"{prompt}\n\nTexto del documento:\n{pdf_text[:4000]}"
+                extracted = await call_text_ai(full_prompt)
+            else:
+                extracted = await provider_fn(prompt, file_data, mime)
+            if extracted:
+                return extracted, provider_name
+            logger.warning("Provider %s returned no data, trying next", provider_name)
+        except Exception as e:
+            logger.warning("Provider %s failed: %s, trying next", provider_name, e)
+    return None, None
+
+
 async def extract_document_data(
     db: AsyncSession,
     document: Document,
@@ -91,43 +118,17 @@ async def extract_document_data(
 
     if not _PROVIDERS:
         _init_providers()
-
     if not _PROVIDERS:
         logger.warning("No AI API key configured, skipping extraction")
         document.extraction_status = ExtractionStatus.FAILED.value
         await db.flush()
         return None
 
-    from app.utils.pdf_extractor import extract_text_from_pdf
-
-    pdf_text = None
     mime = document.mime_type or "application/pdf"
-    if mime == "application/pdf":
-        pdf_text = extract_text_from_pdf(file_data)
-        if pdf_text:
-            logger.info(
-                "PDF text extracted locally (%d chars), sending text to AI",
-                len(pdf_text),
-            )
-
-    extracted = None
-    provider_used = None
+    pdf_text = _extract_pdf_text(file_data, mime)
     prompt = _get_prompt(document.document_type)
 
-    for provider_name, provider_fn in _PROVIDERS:
-        try:
-            if pdf_text:
-                full_prompt = f"{prompt}\n\nTexto del documento:\n{pdf_text[:4000]}"
-                extracted = await call_text_ai(full_prompt)
-            else:
-                extracted = await provider_fn(prompt, file_data, mime)
-            if extracted:
-                provider_used = provider_name
-                break
-            logger.warning("Provider %s returned no data, trying next", provider_name)
-        except Exception as e:
-            logger.warning("Provider %s failed: %s, trying next", provider_name, e)
-            continue
+    extracted, provider_used = await _try_providers(prompt, file_data, mime, pdf_text)
 
     if extracted and provider_used:
         document.extracted_data = extracted

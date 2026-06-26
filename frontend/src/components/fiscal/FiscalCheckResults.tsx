@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle, RefreshCw, Shield } from "lucide-react";
+import { FISCAL_LIST_LABELS } from "../../constants";
 import type { FiscalListCheck } from "../../types";
 import { formatDateTime } from "../../utils/formatDate";
 import { Button } from "../ui/Button";
@@ -7,16 +8,47 @@ import { EmptyState } from "../ui/EmptyState";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
 import { FiscalListBadge } from "./FiscalListBadge";
 
-const LIST_LABELS: Record<string, string> = {
-  art_69_cancelados: "Art. 69 - Cancelados",
-  art_69_exigibles: "Art. 69 - Exigibles",
-  art_69_firmes: "Art. 69 - Firmes",
-  art_69_no_localizados: "Art. 69 - No Localizados",
-  art_69_sentencias: "Art. 69 - Sentencias",
-  art_69_csd_sin_efectos: "Art. 69 - CSD Sin Efectos",
-  art_69b: "Art. 69-B - EFOS",
-  art_69b_bis: "Art. 69-B Bis - Perdidas",
-};
+function FiscalSummaryBanner({ matchCount, isClean }: { matchCount: number; isClean: boolean }) {
+  return (
+    <div className={`flex items-center gap-3 mt-4 p-3 rounded-lg ${isClean ? "bg-green-50" : "bg-red-50"}`}>
+      {isClean ? (
+        <>
+          <CheckCircle className="h-5 w-5 text-green-600" />
+          <p className="text-sm font-medium text-green-700">RFC limpio en todas las listas fiscales</p>
+        </>
+      ) : (
+        <>
+          <AlertTriangle className="h-5 w-5 text-red-600" />
+          <p className="text-sm font-medium text-red-700">
+            RFC encontrado en {matchCount} {matchCount === 1 ? "lista" : "listas"} fiscal{matchCount === 1 ? "" : "es"}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function FiscalCheckRow({ check }: { check: FiscalListCheck }) {
+  return (
+    <div className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border ${
+      check.found ? "border-red-200 bg-red-50" : "border-border"
+    }`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <Shield className={`h-4 w-4 shrink-0 ${check.found ? "text-red-500" : "text-green-500"}`} />
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-text truncate">
+            {FISCAL_LIST_LABELS[check.list_type] ?? check.list_type}
+          </p>
+          <p className="text-xs text-text-secondary truncate">{check.list_reference}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 ml-7 sm:ml-0 shrink-0">
+        <FiscalListBadge found={check.found} />
+        <span className="text-xs text-text-secondary whitespace-nowrap">{formatDateTime(check.checked_at)}</span>
+      </div>
+    </div>
+  );
+}
 
 interface FiscalCheckResultsProps {
   checks: FiscalListCheck[] | undefined;
@@ -50,45 +82,9 @@ export function FiscalCheckResults({ checks, isLoading, onRunCheck, isRunning }:
           />
         ) : (
           <>
-            <div className={`flex items-center gap-3 mt-4 p-3 rounded-lg ${isClean ? "bg-green-50" : "bg-red-50"}`}>
-              {isClean ? (
-                <>
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <p className="text-sm font-medium text-green-700">RFC limpio en todas las listas fiscales</p>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-5 w-5 text-red-600" />
-                  <p className="text-sm font-medium text-red-700">
-                    RFC encontrado en {matchCount} {matchCount === 1 ? "lista" : "listas"} fiscal{matchCount === 1 ? "" : "es"}
-                  </p>
-                </>
-              )}
-            </div>
-
+            <FiscalSummaryBanner matchCount={matchCount} isClean={isClean} />
             <div className="mt-4 space-y-2">
-              {checks.map((check) => (
-                <div
-                  key={check.id}
-                  className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border ${
-                    check.found ? "border-red-200 bg-red-50" : "border-border"
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Shield className={`h-4 w-4 shrink-0 ${check.found ? "text-red-500" : "text-green-500"}`} />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-text truncate">
-                        {LIST_LABELS[check.list_type] ?? check.list_type}
-                      </p>
-                      <p className="text-xs text-text-secondary truncate">{check.list_reference}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 ml-7 sm:ml-0 shrink-0">
-                    <FiscalListBadge found={check.found} />
-                    <span className="text-xs text-text-secondary whitespace-nowrap">{formatDateTime(check.checked_at)}</span>
-                  </div>
-                </div>
-              ))}
+              {checks.map((check) => <FiscalCheckRow key={check.id} check={check} />)}
             </div>
           </>
         )}

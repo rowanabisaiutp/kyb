@@ -45,36 +45,33 @@ async def lifespan(app: FastAPI):
 
 # SCHEDULER DE VIGENCIAS: cada hora revisa todos los dossiers activos.
 # Si un doc vencio, CSF no es del mes, o fiscal > 3 meses -> needs_update automatico.
-async def _periodic_validity_check():
+async def _run_validity_cycle():
     from app.models.dossier import Dossier, DossierStatus
     from app.services.dossier_service import check_and_update_validity
     from sqlalchemy import select
 
+    async with async_session() as db:
+        result = await db.execute(
+            select(Dossier.id).where(
+                Dossier.status.notin_([DossierStatus.DRAFT.value, DossierStatus.REJECTED.value])
+            )
+        )
+        dossier_ids = result.scalars().all()
+        updated = 0
+        for did in dossier_ids:
+            new_status = await check_and_update_validity(db, did)
+            if new_status == DossierStatus.NEEDS_UPDATE.value:
+                updated += 1
+        await db.commit()
+        if updated:
+            logger.info("Validity check: %d dossiers marked as needs_update", updated)
+
+
+async def _periodic_validity_check():
     await asyncio.sleep(60)
     while True:
         try:
-            async with async_session() as db:
-                result = await db.execute(
-                    select(Dossier.id).where(
-                        Dossier.status.notin_(
-                            [
-                                DossierStatus.DRAFT.value,
-                                DossierStatus.REJECTED.value,
-                            ]
-                        )
-                    )
-                )
-                dossier_ids = result.scalars().all()
-                updated = 0
-                for did in dossier_ids:
-                    new_status = await check_and_update_validity(db, did)
-                    if new_status == DossierStatus.NEEDS_UPDATE.value:
-                        updated += 1
-                await db.commit()
-                if updated:
-                    logger.info(
-                        "Validity check: %d dossiers marked as needs_update", updated
-                    )
+            await _run_validity_cycle()
         except Exception as e:
             logger.error("Validity check failed: %s", e)
         await asyncio.sleep(3600)

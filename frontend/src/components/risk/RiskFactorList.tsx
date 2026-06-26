@@ -1,13 +1,24 @@
-import { AlertTriangle, Shield, ShieldAlert, ShieldCheck } from "lucide-react";
+import { RISK_CATEGORY_CONFIG } from "../../constants";
 import type { RiskFactor } from "../../types";
 import { Badge } from "../ui/Badge";
 
-const CATEGORY_CONFIG: Record<string, { label: string; icon: typeof Shield }> = {
-  fiscal: { label: "Fiscal", icon: ShieldAlert },
-  documents: { label: "Documentos", icon: Shield },
-  reconciliation: { label: "Conciliacion", icon: AlertTriangle },
-  completeness: { label: "Completitud", icon: ShieldCheck },
-};
+function getRowStyle(factor: RiskFactor): string {
+  if (factor.blocking) return "border-red-200 bg-red-50";
+  if (factor.points > 0) return "border-border";
+  return "border-border bg-gray-50";
+}
+
+function getIconColor(factor: RiskFactor): string {
+  if (factor.blocking) return "text-red-500";
+  if (factor.points > 0) return "text-yellow-500";
+  return "text-green-500";
+}
+
+function getPointsColor(points: number): string {
+  if (points === 0) return "text-green-600";
+  if (points >= 30) return "text-red-600";
+  return "text-yellow-600";
+}
 
 interface RiskFactorListProps {
   factors: RiskFactor[];
@@ -23,26 +34,18 @@ export function RiskFactorList({ factors }: RiskFactorListProps) {
   return (
     <div className="space-y-2">
       {sorted.map((factor, i) => {
-        const config = CATEGORY_CONFIG[factor.category] ?? CATEGORY_CONFIG.documents;
+        const config = RISK_CATEGORY_CONFIG[factor.category] ?? RISK_CATEGORY_CONFIG.documents;
         const Icon = config.icon;
 
         return (
-          <div
-            key={`${factor.code}-${i}`}
-            className={`flex items-start gap-3 p-3 rounded-lg border ${
-              factor.blocking ? "border-red-200 bg-red-50" : factor.points > 0 ? "border-border" : "border-border bg-gray-50"
-            }`}
-          >
-            <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${
-              factor.blocking ? "text-red-500" : factor.points > 0 ? "text-yellow-500" : "text-green-500"
-            }`} />
+          <div key={`${factor.code}-${i}`}
+            className={`flex items-start gap-3 p-3 rounded-lg border ${getRowStyle(factor)}`}>
+            <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${getIconColor(factor)}`} />
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-text">{factor.description}</p>
-                {factor.blocking && (
-                  <Badge className="bg-red-100 text-red-700">Bloqueante</Badge>
-                )}
+                {factor.blocking && <Badge className="bg-red-100 text-red-700">Bloqueante</Badge>}
               </div>
               <div className="flex items-center gap-3 mt-1">
                 <span className="text-xs text-text-secondary">{config.label}</span>
@@ -50,9 +53,7 @@ export function RiskFactorList({ factors }: RiskFactorListProps) {
               </div>
             </div>
 
-            <span className={`text-sm font-bold shrink-0 ${
-              factor.points === 0 ? "text-green-600" : factor.points >= 30 ? "text-red-600" : "text-yellow-600"
-            }`}>
+            <span className={`text-sm font-bold shrink-0 ${getPointsColor(factor.points)}`}>
               +{factor.points}
             </span>
           </div>

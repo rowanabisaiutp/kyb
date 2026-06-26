@@ -1,3 +1,4 @@
+import { RISK_GAUGE_COLORS } from "../../constants";
 import type { RiskClassification } from "../../types";
 import { getRiskBg, getRiskLabel } from "../../utils/riskColors";
 
@@ -7,17 +8,8 @@ interface RiskScoreGaugeProps {
   blocksApproval: boolean;
 }
 
-function getGaugeColor(classification: RiskClassification): string {
-  const colors: Record<RiskClassification, string> = {
-    safe: "#16a34a",
-    review_required: "#d97706",
-    high_risk: "#dc2626",
-  };
-  return colors[classification];
-}
-
 export function RiskScoreGauge({ score, classification, blocksApproval }: RiskScoreGaugeProps) {
-  const color = getGaugeColor(classification);
+  const color = RISK_GAUGE_COLORS[classification];
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const cappedScore = Math.min(score, 100);

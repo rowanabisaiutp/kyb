@@ -21,17 +21,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["documents"])
 
 
-@router.post(
-    "/dossiers/{dossier_id}/documents", response_model=DocumentResponse, status_code=201
-)
-async def upload_document(
-    dossier_id: uuid.UUID,
-    file: UploadFile = File(...),
-    document_type: str = Form(...),
-    fecha_emision: str | None = Form(None),
-    fecha_vencimiento: str | None = Form(None),
-    db: AsyncSession = Depends(get_db),
-):
+MAX_FILE_SIZE = 10 * 1024 * 1024
+
+
+async def _validate_upload(dossier_id: uuid.UUID, document_type: str, file: UploadFile, db: AsyncSession):
     from app.models.document import DocumentType
 
     dossier = await db.get(Dossier, dossier_id)
@@ -44,12 +37,39 @@ async def upload_document(
             status_code=400, detail=f"Tipo de documento invalido: {document_type}"
         )
 
-    max_size = 10 * 1024 * 1024
     file_data = await file.read()
-    if len(file_data) > max_size:
+    if len(file_data) > MAX_FILE_SIZE:
         raise HTTPException(
             status_code=413, detail="Archivo demasiado grande (max 10 MB)"
         )
+
+    return file_data
+
+
+async def _run_extraction(db: AsyncSession, doc, file_data: bytes):
+    try:
+        await extract_document_data(db, doc, file_data)
+        await db.commit()
+        await db.refresh(doc)
+    except Exception as e:
+        logger.error("Extraction failed for document %s: %s", doc.id, e)
+        doc.extraction_status = "failed"
+        await db.commit()
+        await db.refresh(doc)
+
+
+@router.post(
+    "/dossiers/{dossier_id}/documents", response_model=DocumentResponse, status_code=201
+)
+async def upload_document(
+    dossier_id: uuid.UUID,
+    file: UploadFile = File(...),
+    document_type: str = Form(...),
+    fecha_emision: str | None = Form(None),
+    fecha_vencimiento: str | None = Form(None),
+    db: AsyncSession = Depends(get_db),
+):
+    file_data = await _validate_upload(dossier_id, document_type, file, db)
 
     try:
         doc = await document_service.upload_document(
@@ -67,17 +87,7 @@ async def upload_document(
 
     await db.commit()
     await db.refresh(doc)
-
-    try:
-        await extract_document_data(db, doc, file_data)
-        await db.commit()
-        await db.refresh(doc)
-    except Exception as e:
-        logger.error("Extraction failed for document %s: %s", doc.id, e)
-        doc.extraction_status = "failed"
-        await db.commit()
-        await db.refresh(doc)
-
+    await _run_extraction(db, doc, file_data)
     return doc
 
 

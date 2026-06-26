@@ -20,17 +20,7 @@ from app.services.risk_engine import calculate_risk
 router = APIRouter(tags=["risk"])
 
 
-@router.post(
-    "/dossiers/{dossier_id}/risk-assessment", response_model=RiskAssessmentResponse
-)
-async def calculate_dossier_risk(
-    dossier_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-):
-    dossier = await db.get(Dossier, dossier_id)
-    if not dossier:
-        raise HTTPException(status_code=404, detail="Dossier not found")
-
+async def _fetch_risk_inputs(db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier):
     result = await db.execute(
         select(LegalEntity)
         .where(LegalEntity.id == dossier.entity_id)
@@ -57,13 +47,10 @@ async def calculate_dossier_risk(
     )
     reconciliation_results = list(recon_result.scalars().all())
 
-    assessment = calculate_risk(
-        entity=entity,
-        documents=documents,
-        fiscal_checks=fiscal_checks,
-        reconciliation_results=reconciliation_results,
-    )
+    return entity, documents, fiscal_checks, reconciliation_results
 
+
+async def _persist_assessment(db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier, assessment):
     factors_data = [asdict(f) for f in assessment.factors]
 
     risk_record = RiskAssessment(
@@ -95,17 +82,44 @@ async def calculate_dossier_risk(
 
     await db.commit()
     await db.refresh(risk_record)
+    return risk_record, factors_data
 
+
+def _to_response(record: RiskAssessment, factors_data: list, suggested_actions: list) -> RiskAssessmentResponse:
     return RiskAssessmentResponse(
-        id=risk_record.id,
-        dossier_id=risk_record.dossier_id,
-        total_score=risk_record.total_score,
-        classification=risk_record.classification,
+        id=record.id,
+        dossier_id=record.dossier_id,
+        total_score=record.total_score,
+        classification=record.classification,
         factors=factors_data,
-        blocks_approval=risk_record.blocks_approval,
-        suggested_actions=assessment.suggested_actions,
-        calculated_at=risk_record.calculated_at,
+        blocks_approval=record.blocks_approval,
+        suggested_actions=suggested_actions,
+        calculated_at=record.calculated_at,
     )
+
+
+@router.post(
+    "/dossiers/{dossier_id}/risk-assessment", response_model=RiskAssessmentResponse
+)
+async def calculate_dossier_risk(
+    dossier_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    dossier = await db.get(Dossier, dossier_id)
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier not found")
+
+    entity, documents, fiscal_checks, reconciliation_results = await _fetch_risk_inputs(db, dossier_id, dossier)
+
+    assessment = calculate_risk(
+        entity=entity,
+        documents=documents,
+        fiscal_checks=fiscal_checks,
+        reconciliation_results=reconciliation_results,
+    )
+
+    record, factors_data = await _persist_assessment(db, dossier_id, dossier, assessment)
+    return _to_response(record, factors_data, assessment.suggested_actions)
 
 
 @router.get(
@@ -170,6 +184,42 @@ async def get_latest_risk_assessment(
     )
 
 
+async def _build_summary_data(db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier) -> dict:
+    from app.services.document_service import get_missing_documents
+
+    entity_result = await db.execute(
+        select(LegalEntity).where(LegalEntity.id == dossier.entity_id)
+    )
+    entity = entity_result.scalar_one_or_none()
+
+    fiscal_result = await db.execute(
+        select(FiscalListCheck).where(FiscalListCheck.dossier_id == dossier_id)
+    )
+    fiscal_checks = fiscal_result.scalars().all()
+
+    recon_result = await db.execute(
+        select(ReconciliationResult).where(
+            ReconciliationResult.dossier_id == dossier_id
+        )
+    )
+    reconciliation = recon_result.scalars().all()
+
+    documents = await list_documents(db, dossier_id)
+
+    return {
+        "empresa": entity.razon_social if entity else "",
+        "rfc": entity.rfc if entity else "",
+        "status": dossier.status,
+        "risk_score": dossier.current_risk_score,
+        "risk_classification": dossier.current_risk_classification,
+        "documentos_cargados": len(documents),
+        "documentos_faltantes": get_missing_documents(documents),
+        "listas_fiscales_encontrado": sum(1 for fc in fiscal_checks if fc.found),
+        "listas_fiscales_total": len(list(fiscal_checks)),
+        "discrepancias": sum(1 for r in reconciliation if not r.match),
+    }
+
+
 @router.get("/dossiers/{dossier_id}/summary")
 async def get_dossier_summary(
     dossier_id: uuid.UUID,
@@ -181,41 +231,7 @@ async def get_dossier_summary(
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier not found")
 
-    entity_result = await db.execute(
-        select(LegalEntity).where(LegalEntity.id == dossier.entity_id)
-    )
-    entity = entity_result.scalar_one_or_none()
-
-    docs_result = await db.execute(
-        select(FiscalListCheck).where(FiscalListCheck.dossier_id == dossier_id)
-    )
-    fiscal_checks = docs_result.scalars().all()
-
-    recon_result = await db.execute(
-        select(ReconciliationResult).where(
-            ReconciliationResult.dossier_id == dossier_id
-        )
-    )
-    reconciliation = recon_result.scalars().all()
-
-    from app.services.document_service import list_documents, get_missing_documents
-
-    documents = await list_documents(db, dossier_id)
-    missing = get_missing_documents(documents)
-
-    dossier_data = {
-        "empresa": entity.razon_social if entity else "",
-        "rfc": entity.rfc if entity else "",
-        "status": dossier.status,
-        "risk_score": dossier.current_risk_score,
-        "risk_classification": dossier.current_risk_classification,
-        "documentos_cargados": len(documents),
-        "documentos_faltantes": missing,
-        "listas_fiscales_encontrado": sum(1 for fc in fiscal_checks if fc.found),
-        "listas_fiscales_total": len(fiscal_checks),
-        "discrepancias": sum(1 for r in reconciliation if not r.match),
-    }
-
+    dossier_data = await _build_summary_data(db, dossier_id, dossier)
     summary = await generate_dossier_summary(dossier_data)
     if not summary:
         raise HTTPException(status_code=503, detail="Summary service unavailable")

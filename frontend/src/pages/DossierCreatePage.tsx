@@ -8,6 +8,25 @@ import { Input } from "../components/ui/Input";
 import { useCreateDossier } from "../hooks/useDossiers";
 import { formatRfc, isValidRfcFormat } from "../utils/formatRfc";
 
+const ERROR_MESSAGES: Record<string, string> = {
+  "already exists": "Ya existe un expediente con este RFC. Ve a la lista de expedientes para encontrarlo.",
+  "RFC format invalid": "El formato del RFC no es valido. Debe tener 12-13 caracteres (ej: XAXX010101000).",
+};
+
+function parseApiError(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const detail = err.response?.data?.detail;
+    if (typeof detail === "string") {
+      for (const [key, message] of Object.entries(ERROR_MESSAGES)) {
+        if (detail.includes(key)) return message;
+      }
+      return detail;
+    }
+    return "Error al crear el expediente. Verifica los datos e intenta de nuevo.";
+  }
+  return "Error de conexion. Intenta de nuevo.";
+}
+
 export function DossierCreatePage() {
   const navigate = useNavigate();
   const createDossier = useCreateDossier();
@@ -34,22 +53,7 @@ export function DossierCreatePage() {
       const dossier = await createDossier.mutateAsync({ entity_id: entity.id });
       navigate(`/dossiers/${dossier.id}?step=0`);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const detail = err.response?.data?.detail;
-        if (typeof detail === "string") {
-          if (detail.includes("already exists")) {
-            setError("Ya existe un expediente con este RFC. Ve a la lista de expedientes para encontrarlo.");
-          } else if (detail.includes("RFC format invalid")) {
-            setError("El formato del RFC no es valido. Debe tener 12-13 caracteres (ej: XAXX010101000).");
-          } else {
-            setError(detail);
-          }
-        } else {
-          setError("Error al crear el expediente. Verifica los datos e intenta de nuevo.");
-        }
-      } else {
-        setError("Error de conexion. Intenta de nuevo.");
-      }
+      setError(parseApiError(err));
     } finally {
       setLoading(false);
     }

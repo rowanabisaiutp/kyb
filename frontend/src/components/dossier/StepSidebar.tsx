@@ -3,6 +3,12 @@ import type { RiskClassification } from "../../types";
 import { getRiskLabel } from "../../utils/riskColors";
 import { STEP_LABELS } from "../../utils/statusLabels";
 
+const RISK_TEXT_COLORS: Record<RiskClassification, string> = {
+  safe: "text-safe",
+  review_required: "text-warning",
+  high_risk: "text-danger",
+};
+
 interface StepSidebarProps {
   currentStep: number;
   steps: boolean[];
@@ -62,10 +68,7 @@ export function StepSidebar({
       {riskScore != null && riskClassification && (
         <div className="mt-8 pt-6 border-t border-border text-center">
           <p className="text-xs text-text-secondary mb-1">Score de Riesgo</p>
-          <p className={`text-2xl font-bold ${
-            riskClassification === "safe" ? "text-safe" :
-            riskClassification === "review_required" ? "text-warning" : "text-danger"
-          }`}>
+          <p className={`text-2xl font-bold ${RISK_TEXT_COLORS[riskClassification]}`}>
             {riskScore}
           </p>
           <p className="text-xs text-text-secondary">{getRiskLabel(riskClassification)}</p>

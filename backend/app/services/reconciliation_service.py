@@ -91,6 +91,55 @@ def _compare_values(field: str, val_a: str | None, val_b: str | None) -> bool:
 # 1. Recolecta valores de cada fuente (docs con extraccion AI + entity).
 # 2. Genera todas las combinaciones de pares.
 # 3. Compara con logica por campo. 4. Guarda ReconciliationResult por par.
+def _collect_field_sources(
+    field_name: str,
+    sources: dict[str, list[str]],
+    entity: LegalEntity,
+    doc_by_type: dict[str, Document],
+) -> list[tuple[str, str | None]]:
+    available: list[tuple[str, str | None]] = []
+
+    entity_value = _get_entity_value(entity, field_name)
+    if entity_value:
+        available.append(("formulario", entity_value))
+
+    for doc_type, keys in sources.items():
+        doc = doc_by_type.get(doc_type)
+        if doc and doc.extracted_data:
+            val = _extract_value(doc.extracted_data, keys)
+            if val:
+                available.append((doc_type, val))
+
+    return available
+
+
+def _compare_pairs(
+    dossier_id: uuid.UUID,
+    field_name: str,
+    available_sources: list[tuple[str, str | None]],
+) -> list[ReconciliationResult]:
+    results: list[ReconciliationResult] = []
+    for i in range(len(available_sources)):
+        for j in range(i + 1, len(available_sources)):
+            source_a, value_a = available_sources[i]
+            source_b, value_b = available_sources[j]
+            match = _compare_values(field_name, value_a, value_b)
+            severity = None if match else FIELD_SEVERITY.get(field_name, "info")
+            results.append(
+                ReconciliationResult(
+                    dossier_id=dossier_id,
+                    field_name=field_name,
+                    source_a=source_a,
+                    source_b=source_b,
+                    value_a=value_a,
+                    value_b=value_b,
+                    match=match,
+                    severity=severity,
+                )
+            )
+    return results
+
+
 async def run_reconciliation(
     db: AsyncSession,
     *,
@@ -110,41 +159,11 @@ async def run_reconciliation(
             doc_by_type[doc.document_type] = doc
 
     results: list[ReconciliationResult] = []
-
     for field_name, sources in FIELD_EXTRACTORS.items():
-        available_sources: list[tuple[str, str | None]] = []
-
-        entity_value = _get_entity_value(entity, field_name)
-        if entity_value:
-            available_sources.append(("formulario", entity_value))
-
-        for doc_type, keys in sources.items():
-            doc = doc_by_type.get(doc_type)
-            if doc and doc.extracted_data:
-                val = _extract_value(doc.extracted_data, keys)
-                if val:
-                    available_sources.append((doc_type, val))
-
-        for i in range(len(available_sources)):
-            for j in range(i + 1, len(available_sources)):
-                source_a, value_a = available_sources[i]
-                source_b, value_b = available_sources[j]
-
-                match = _compare_values(field_name, value_a, value_b)
-                severity = None if match else FIELD_SEVERITY.get(field_name, "info")
-
-                result = ReconciliationResult(
-                    dossier_id=dossier_id,
-                    field_name=field_name,
-                    source_a=source_a,
-                    source_b=source_b,
-                    value_a=value_a,
-                    value_b=value_b,
-                    match=match,
-                    severity=severity,
-                )
-                db.add(result)
-                results.append(result)
+        available = _collect_field_sources(field_name, sources, entity, doc_by_type)
+        for r in _compare_pairs(dossier_id, field_name, available):
+            db.add(r)
+            results.append(r)
 
     await db.flush()
 

@@ -9,6 +9,10 @@ if (
 ):
     connect_args["ssl"] = False
 
+import logging as _logging
+
+_logger = _logging.getLogger(__name__)
+
 try:
     engine = create_async_engine(
         settings.async_database_url,
@@ -16,6 +20,9 @@ try:
         connect_args=connect_args,
     )
 except ModuleNotFoundError:
+    _logger.warning(
+        "asyncpg not installed, falling back to SQLite (dev/test only)"
+    )
     engine = create_async_engine("sqlite+aiosqlite:///test_kyb.db", echo=False)
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

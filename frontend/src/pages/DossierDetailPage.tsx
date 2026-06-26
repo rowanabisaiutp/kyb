@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { StepSidebar } from "../components/dossier/StepSidebar";
@@ -12,6 +13,43 @@ import { FadeIn } from "../components/ui/FadeIn";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useDossier } from "../hooks/useDossier";
 import { useStepCompletion } from "../hooks/useStepCompletion";
+import type { Dossier } from "../types";
+
+const TOTAL_STEPS = 6;
+const LAST_STEP = TOTAL_STEPS - 1;
+
+type StepRenderer = (dossier: Dossier, goToStep: (s: number) => void) => ReactNode;
+
+const STEP_RENDERERS: StepRenderer[] = [
+  (dossier, goToStep) => <StepDatosEmpresa dossier={dossier} onComplete={() => goToStep(1)} />,
+  (dossier) => <StepDocumentos dossierId={dossier.id} />,
+  (dossier) => <StepVerificacionSAT dossierId={dossier.id} />,
+  (dossier) => <StepConciliacion dossierId={dossier.id} />,
+  (dossier) => <StepEvaluacionRiesgo dossierId={dossier.id} />,
+  (dossier) => <StepDecision dossier={dossier} />,
+];
+
+function MobileStepSelector({ steps, currentStep, onStepClick }: {
+  steps: boolean[];
+  currentStep: number;
+  onStepClick: (step: number) => void;
+}) {
+  return (
+    <div className="lg:hidden flex gap-1 px-3 py-2 overflow-x-auto border-b border-border bg-gray-50 shrink-0">
+      {steps.map((done, i) => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onStepClick(i)}
+          className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-colors
+            ${i === currentStep ? "bg-primary text-white" : done ? "bg-step-complete/10 text-step-complete" : "bg-gray-200 text-text-secondary"}`}
+        >
+          {i + 1}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function DossierDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -21,7 +59,7 @@ export function DossierDetailPage() {
 
   const stepParam = searchParams.get("step");
   const parsed = stepParam !== null ? parseInt(stepParam, 10) : NaN;
-  const currentStep = Number.isNaN(parsed) ? completion.activeStep : Math.max(0, Math.min(parsed, 5));
+  const currentStep = Number.isNaN(parsed) ? completion.activeStep : Math.max(0, Math.min(parsed, LAST_STEP));
 
   function goToStep(step: number) {
     setSearchParams({ step: String(step) });
@@ -65,37 +103,20 @@ export function DossierDetailPage() {
           />
         </div>
 
-        <div className="lg:hidden flex gap-1 px-3 py-2 overflow-x-auto border-b border-border bg-gray-50 shrink-0">
-          {completion.steps.map((done, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => goToStep(i)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-colors
-                ${i === currentStep ? "bg-primary text-white" : done ? "bg-step-complete/10 text-step-complete" : "bg-gray-200 text-text-secondary"}`}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
+        <MobileStepSelector steps={completion.steps} currentStep={currentStep} onStepClick={goToStep} />
 
         <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-4 lg:py-6">
           <FadeIn key={currentStep}>
-            {currentStep === 0 && <StepDatosEmpresa dossier={dossier} onComplete={() => goToStep(1)} />}
-            {currentStep === 1 && <StepDocumentos dossierId={dossier.id} />}
-            {currentStep === 2 && <StepVerificacionSAT dossierId={dossier.id} />}
-            {currentStep === 3 && <StepConciliacion dossierId={dossier.id} />}
-            {currentStep === 4 && <StepEvaluacionRiesgo dossierId={dossier.id} />}
-            {currentStep === 5 && <StepDecision dossier={dossier} />}
+            {STEP_RENDERERS[currentStep](dossier, goToStep)}
           </FadeIn>
 
-          {currentStep < 5 && (
+          {currentStep < LAST_STEP && (
             <StepNavigation
               currentStep={currentStep}
               totalSteps={completion.totalSteps}
               canProceed={completion.steps[currentStep]}
               onPrevious={() => goToStep(Math.max(0, currentStep - 1))}
-              onNext={() => goToStep(Math.min(5, currentStep + 1))}
+              onNext={() => goToStep(Math.min(LAST_STEP, currentStep + 1))}
             />
           )}
         </div>
