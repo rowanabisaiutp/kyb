@@ -1,6 +1,10 @@
+import logging
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.config import settings
+
+_logger = logging.getLogger(__name__)
 
 connect_args = {}
 if (
@@ -8,10 +12,6 @@ if (
     or "internal" in settings.async_database_url
 ):
     connect_args["ssl"] = False
-
-import logging as _logging
-
-_logger = _logging.getLogger(__name__)
 
 try:
     engine = create_async_engine(

@@ -82,7 +82,7 @@ export function FiscalCheckResults({ checks, isLoading, onRunCheck, isRunning }:
           />
         ) : (
           <>
-            <FiscalSummaryBanner matchCount={matchCount} isClean={isClean} />
+            <FiscalSummaryBanner matchCount={matchCount} isClean={isClean ?? false} />
             <div className="mt-4 space-y-2">
               {checks.map((check) => <FiscalCheckRow key={check.id} check={check} />)}
             </div>
