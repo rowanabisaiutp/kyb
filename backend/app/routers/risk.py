@@ -20,16 +20,14 @@ from app.services.risk_engine import calculate_risk
 router = APIRouter(tags=["risk"])
 
 
-async def _fetch_risk_inputs(
-    db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier
-):
+async def _fetch_risk_inputs(db: AsyncSession, dossier_id: uuid.UUID, dossier: Dossier):
     result = await db.execute(
         select(LegalEntity)
         .where(LegalEntity.id == dossier.entity_id)
         .options(
             selectinload(LegalEntity.representatives),
             selectinload(LegalEntity.shareholders),
-        )
+        ),
     )
     entity = result.scalar_one_or_none()
     if not entity:
@@ -38,14 +36,14 @@ async def _fetch_risk_inputs(
     documents = await list_documents(db, dossier_id)
 
     fiscal_result = await db.execute(
-        select(FiscalListCheck).where(FiscalListCheck.dossier_id == dossier_id)
+        select(FiscalListCheck).where(FiscalListCheck.dossier_id == dossier_id),
     )
     fiscal_checks = list(fiscal_result.scalars().all())
 
     recon_result = await db.execute(
         select(ReconciliationResult).where(
             ReconciliationResult.dossier_id == dossier_id
-        )
+        ),
     )
     reconciliation_results = list(recon_result.scalars().all())
 
@@ -115,8 +113,8 @@ async def calculate_dossier_risk(
     if not dossier:
         raise HTTPException(status_code=404, detail="Dossier not found")
 
-    entity, documents, fiscal_checks, reconciliation_results = (
-        await _fetch_risk_inputs(db, dossier_id, dossier)
+    entity, documents, fiscal_checks, reconciliation_results = await _fetch_risk_inputs(
+        db, dossier_id, dossier
     )
 
     assessment = calculate_risk(
@@ -143,7 +141,7 @@ async def list_risk_assessments(
     result = await db.execute(
         select(RiskAssessment)
         .where(RiskAssessment.dossier_id == dossier_id)
-        .order_by(RiskAssessment.calculated_at.desc())
+        .order_by(RiskAssessment.calculated_at.desc()),
     )
     records = result.scalars().all()
     return [
@@ -154,9 +152,9 @@ async def list_risk_assessments(
             classification=r.classification,
             factors=r.factors if isinstance(r.factors, list) else [],
             blocks_approval=r.blocks_approval,
-            suggested_actions=r.suggested_actions
-            if isinstance(r.suggested_actions, list)
-            else [],
+            suggested_actions=(
+                r.suggested_actions if isinstance(r.suggested_actions, list) else []
+            ),
             calculated_at=r.calculated_at,
         )
         for r in records
@@ -175,7 +173,7 @@ async def get_latest_risk_assessment(
         select(RiskAssessment)
         .where(RiskAssessment.dossier_id == dossier_id)
         .order_by(RiskAssessment.calculated_at.desc())
-        .limit(1)
+        .limit(1),
     )
     r = result.scalar_one_or_none()
     if not r:
@@ -187,9 +185,9 @@ async def get_latest_risk_assessment(
         classification=r.classification,
         factors=r.factors if isinstance(r.factors, list) else [],
         blocks_approval=r.blocks_approval,
-        suggested_actions=r.suggested_actions
-        if isinstance(r.suggested_actions, list)
-        else [],
+        suggested_actions=(
+            r.suggested_actions if isinstance(r.suggested_actions, list) else []
+        ),
         calculated_at=r.calculated_at,
     )
 
@@ -200,19 +198,19 @@ async def _build_summary_data(
     from app.services.document_service import get_missing_documents
 
     entity_result = await db.execute(
-        select(LegalEntity).where(LegalEntity.id == dossier.entity_id)
+        select(LegalEntity).where(LegalEntity.id == dossier.entity_id),
     )
     entity = entity_result.scalar_one_or_none()
 
     fiscal_result = await db.execute(
-        select(FiscalListCheck).where(FiscalListCheck.dossier_id == dossier_id)
+        select(FiscalListCheck).where(FiscalListCheck.dossier_id == dossier_id),
     )
     fiscal_checks = fiscal_result.scalars().all()
 
     recon_result = await db.execute(
         select(ReconciliationResult).where(
             ReconciliationResult.dossier_id == dossier_id
-        )
+        ),
     )
     reconciliation = recon_result.scalars().all()
 

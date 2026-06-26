@@ -61,16 +61,10 @@ def calculate_risk(
 ) -> RiskAssessmentResult:
     factors: list[RiskFactor] = []
 
-    _evaluate_fiscal_rules(
-        fiscal_checks, factors
-    )  # Listas SAT (Art. 69/69-B/69-B Bis/49 Bis).
-    _evaluate_document_rules(
-        documents, factors
-    )  # Faltantes, vencidos, CSF fuera de mes.
-    _evaluate_reconciliation_rules(
-        reconciliation_results, factors
-    )  # Discrepancias entre docs.
-    _evaluate_completeness_rules(entity, factors)  # RFC, rep legal, socios.
+    _evaluate_fiscal_rules(fiscal_checks, factors)
+    _evaluate_document_rules(documents, factors)
+    _evaluate_reconciliation_rules(reconciliation_results, factors)
+    _evaluate_completeness_rules(entity, factors)
 
     total_score = sum(f.points for f in factors)
     has_blocking = any(f.blocking for f in factors)
@@ -146,9 +140,7 @@ def _extract_69b_situation(fc: FiscalListCheck) -> str | None:
     if not fc.result_detail:
         return None
     details = (
-        fc.result_detail
-        if isinstance(fc.result_detail, list)
-        else [fc.result_detail]
+        fc.result_detail if isinstance(fc.result_detail, list) else [fc.result_detail]
     )
     for row in details:
         if isinstance(row, dict):
@@ -168,7 +160,12 @@ def _evaluate_69b_check(
     situation = _extract_69b_situation(fc)
 
     if situation:
-        for sit_key, (code, points, blocking, desc) in ART_69B_SITUATION_RULES.items():
+        for sit_key, (
+            code,
+            points,
+            blocking,
+            desc,
+        ) in ART_69B_SITUATION_RULES.items():
             if sit_key.lower() in situation.lower():
                 factors.append(
                     RiskFactor(

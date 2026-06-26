@@ -114,9 +114,7 @@ async def _try_providers(
                 extracted = await provider_fn(prompt, file_data, mime)
             if extracted:
                 return extracted, provider_name
-            logger.warning(
-                "Provider %s returned no data, trying next", provider_name
-            )
+            logger.warning("Provider %s returned no data, trying next", provider_name)
         except Exception as e:
             logger.warning("Provider %s failed: %s, trying next", provider_name, e)
     return None, None
