@@ -15,6 +15,8 @@ export interface RfcCheckResult {
   rfc: string;
   valid: boolean;
   exists: boolean;
+  entity_id: string | null;
+  razon_social: string | null;
   sat_lists_loaded: boolean;
   found_in_sat: boolean;
   lists_matched: { list: string; article: string; description: string }[];

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { AlertCircle, CheckCircle, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle, Info, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createEntity, checkRfc } from "../api/entities";
@@ -12,20 +12,10 @@ import { isValidRfcFormat } from "../utils/formatRfc";
 
 type RfcStatus = "idle" | "checking" | "valid" | "invalid_format" | "exists" | "sat_alert";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  "already exists": "Ya existe un expediente con este RFC. Ve a la lista de expedientes para encontrarlo.",
-  "RFC format invalid": "El formato del RFC no es valido. Debe tener 12-13 caracteres (ej: XAXX010101000).",
-};
-
 function parseApiError(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const detail = err.response?.data?.detail;
-    if (typeof detail === "string") {
-      for (const [key, message] of Object.entries(ERROR_MESSAGES)) {
-        if (detail.includes(key)) return message;
-      }
-      return detail;
-    }
+    if (typeof detail === "string") return detail;
     return "Error al crear el expediente. Verifica los datos e intenta de nuevo.";
   }
   return "Error de conexion. Intenta de nuevo.";
@@ -79,7 +69,8 @@ export function DossierCreatePage() {
     return () => clearTimeout(debounceRef.current);
   }, [rfc]);
 
-  const rfcBlocked = rfcStatus === "exists" || rfcStatus === "invalid_format";
+  const rfcBlocked = rfcStatus === "invalid_format";
+  const existingEntity = rfcStatus === "exists" && rfcCheckResult?.entity_id;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -94,11 +85,19 @@ export function DossierCreatePage() {
 
     setLoading(true);
     try {
-      const entity = await createEntity({
-        rfc: rfc.toUpperCase().trim(),
-        razon_social: razonSocial.trim(),
-      });
-      const dossier = await createDossier.mutateAsync({ entity_id: entity.id });
+      let entityId: string;
+
+      if (existingEntity) {
+        entityId = rfcCheckResult!.entity_id!;
+      } else {
+        const entity = await createEntity({
+          rfc: rfc.toUpperCase().trim(),
+          razon_social: razonSocial.trim(),
+        });
+        entityId = entity.id;
+      }
+
+      const dossier = await createDossier.mutateAsync({ entity_id: entityId });
       navigate(`/dossiers/${dossier.id}?step=0`);
     } catch (err) {
       setError(parseApiError(err));
@@ -136,23 +135,24 @@ export function DossierCreatePage() {
                 required
                 error={
                   rfcStatus === "invalid_format" ? "Formato de RFC invalido (ej: XAXX010101000)" :
-                  rfcStatus === "exists" ? "Ya existe una entidad con este RFC" :
                   undefined
                 }
               />
               <RfcIndicator status={rfcStatus} checkResult={rfcCheckResult} />
             </div>
-            <Input
-              label="Razon Social"
-              id="razon_social"
-              value={razonSocial}
-              onChange={(e) => setRazonSocial(e.target.value)}
-              placeholder="Ej: Empresa SA de CV"
-              required
-            />
+            {!existingEntity && (
+              <Input
+                label="Razon Social"
+                id="razon_social"
+                value={razonSocial}
+                onChange={(e) => setRazonSocial(e.target.value)}
+                placeholder="Ej: Empresa SA de CV"
+                required
+              />
+            )}
 
             <Button type="submit" loading={loading} disabled={rfcBlocked} size="lg" className="w-full">
-              Crear Expediente
+              {existingEntity ? "Crear Nuevo Expediente" : "Crear Expediente"}
             </Button>
           </form>
 
@@ -177,6 +177,39 @@ function RfcIndicator({ status, checkResult }: { status: RfcStatus; checkResult:
       <p className="mt-1 flex items-center gap-1 text-xs text-blue-600">
         <Loader2 className="h-3 w-3 animate-spin" /> Verificando RFC en SAT...
       </p>
+    );
+  }
+  if (status === "exists" && checkResult) {
+    return (
+      <div className="mt-1 space-y-1">
+        <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+          <p className="flex items-center gap-1 text-xs font-medium text-blue-700">
+            <Info className="h-3 w-3" /> Entidad ya registrada: {checkResult.razon_social}
+          </p>
+          <p className="text-xs text-blue-600 ml-4 mt-0.5">
+            Se creara un nuevo expediente vinculado a esta entidad.
+          </p>
+        </div>
+        {checkResult.found_in_sat && (
+          <div className="p-2 bg-red-50 border border-red-200 rounded">
+            <p className="flex items-center gap-1 text-xs font-medium text-red-700">
+              <ShieldAlert className="h-3 w-3" /> RFC encontrado en {checkResult.lists_matched.length} lista(s) del SAT:
+            </p>
+            <ul className="mt-1 space-y-0.5">
+              {checkResult.lists_matched.map((m, i) => (
+                <li key={i} className="text-xs text-red-600 ml-4">
+                  • {m.article} — {m.description}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {!checkResult.found_in_sat && checkResult.sat_lists_loaded && (
+          <p className="flex items-center gap-1 text-xs text-green-600">
+            <ShieldCheck className="h-3 w-3" /> Limpio en {checkResult.total_lists_checked} listas del SAT
+          </p>
+        )}
+      </div>
     );
   }
   if (status === "valid") {
@@ -212,10 +245,10 @@ function RfcIndicator({ status, checkResult }: { status: RfcStatus; checkResult:
       </div>
     );
   }
-  if (status === "exists") {
+  if (status === "invalid_format") {
     return (
       <p className="mt-1 flex items-center gap-1 text-xs text-red-600">
-        <AlertCircle className="h-3 w-3" /> RFC ya registrado en el sistema
+        <AlertCircle className="h-3 w-3" /> Formato invalido
       </p>
     );
   }

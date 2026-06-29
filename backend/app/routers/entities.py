@@ -100,12 +100,14 @@ async def check_rfc(
     if exclude_entity_id:
         query = query.where(LegalEntity.id != exclude_entity_id)
     result = await db.execute(query)
-    exists = result.scalar_one_or_none() is not None
+    entity = result.scalar_one_or_none()
     sat = quick_rfc_lookup(normalized)
     return {
         "rfc": normalized,
         "valid": valid,
-        "exists": exists,
+        "exists": entity is not None,
+        "entity_id": str(entity.id) if entity else None,
+        "razon_social": entity.razon_social if entity else None,
         **sat,
     }
 
