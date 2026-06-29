@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, FileText, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, Pencil, ShieldAlert, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Card, CardTitle } from "../components/ui/Card";
 import { FadeIn } from "../components/ui/FadeIn";
@@ -6,7 +6,7 @@ import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { Header } from "../components/layout/Header";
 import { Button } from "../components/ui/Button";
-import { useDossiers, useDossierStats } from "../hooks/useDossiers";
+import { useDeleteDossier, useDossiers, useDossierStats } from "../hooks/useDossiers";
 import { formatRelative } from "../utils/formatDate";
 import type { DossierStatus } from "../types";
 
@@ -67,25 +67,62 @@ export function DashboardPage() {
           ) : (
             <div className="divide-y divide-border -mx-6">
               {recentDossiers.slice(0, RECENT_DOSSIERS_LIMIT).map((d) => (
-                <Link
+                <div
                   key={d.id}
-                  to={`/dossiers/${d.id}`}
-                  className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 hover:bg-gray-50 transition-colors no-underline"
+                  className="flex items-center gap-2 px-4 sm:px-6 py-3 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-text truncate">{d.entity?.razon_social ?? "—"}</p>
-                    <p className="text-xs text-text-secondary">{d.entity?.rfc}</p>
+                  <Link
+                    to={`/dossiers/${d.id}`}
+                    className="flex flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between no-underline min-w-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text truncate">{d.entity?.razon_social ?? "—"}</p>
+                      <p className="text-xs text-text-secondary">{d.entity?.rfc}</p>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 sm:mt-0">
+                      <StatusBadge status={d.status} />
+                      <span className="text-xs text-text-secondary">{formatRelative(d.created_at)}</span>
+                    </div>
+                  </Link>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Link
+                      to={`/dossiers/${d.id}`}
+                      className="p-2 text-text-secondary hover:text-primary hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Editar expediente"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                    <DashboardDeleteButton dossierId={d.id} />
                   </div>
-                  <div className="flex items-center gap-3 mt-1 sm:mt-0">
-                    <StatusBadge status={d.status} />
-                    <span className="text-xs text-text-secondary">{formatRelative(d.created_at)}</span>
-                  </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
         </Card>
       </FadeIn>
     </>
+  );
+}
+
+function DashboardDeleteButton({ dossierId }: { dossierId: string }) {
+  const deleteMutation = useDeleteDossier();
+
+  function handleDelete(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm("¿Eliminar este expediente? Esta accion no se puede deshacer.")) {
+      deleteMutation.mutate(dossierId);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleDelete}
+      className="p-2 text-text-secondary hover:text-danger hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
+      title="Eliminar expediente"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
   );
 }
