@@ -157,13 +157,27 @@ async def delete_dossier(
     db: AsyncSession = Depends(get_db),
 ):
     dossier = await _get_dossier_or_404(db, dossier_id)
+    entity_id = dossier.entity_id
+
     await log_action(
         db,
         action="dossier.deleted",
         dossier_id=dossier.id,
-        entity_id=dossier.entity_id,
+        entity_id=entity_id,
     )
     await db.delete(dossier)
+    await db.flush()
+
+    other = await db.execute(
+        select(func.count(Dossier.id)).where(
+            Dossier.entity_id == entity_id, Dossier.id != dossier_id
+        )
+    )
+    if other.scalar() == 0:
+        entity = await db.get(LegalEntity, entity_id)
+        if entity:
+            await db.delete(entity)
+
     await db.commit()
 
 

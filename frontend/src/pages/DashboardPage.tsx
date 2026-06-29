@@ -110,7 +110,7 @@ function DashboardDeleteButton({ dossierId }: { dossierId: string }) {
   function handleDelete(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (window.confirm("¿Eliminar este expediente? Esta accion no se puede deshacer.")) {
+    if (window.confirm("¿Eliminar este expediente y todos sus datos? El RFC quedara disponible para registrarse de nuevo.")) {
       deleteMutation.mutate(dossierId);
     }
   }
