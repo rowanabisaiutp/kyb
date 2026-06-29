@@ -1,15 +1,16 @@
 import axios from "axios";
-import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createEntity, checkRfc } from "../api/entities";
+import type { RfcCheckResult } from "../api/entities";
 import { Button } from "../components/ui/Button";
 import { FadeIn } from "../components/ui/FadeIn";
 import { Input } from "../components/ui/Input";
 import { useCreateDossier } from "../hooks/useDossiers";
 import { isValidRfcFormat } from "../utils/formatRfc";
 
-type RfcStatus = "idle" | "checking" | "valid" | "invalid_format" | "exists";
+type RfcStatus = "idle" | "checking" | "valid" | "invalid_format" | "exists" | "sat_alert";
 
 const ERROR_MESSAGES: Record<string, string> = {
   "already exists": "Ya existe un expediente con este RFC. Ve a la lista de expedientes para encontrarlo.",
@@ -38,10 +39,12 @@ export function DossierCreatePage() {
   const [rfc, setRfc] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
   const [rfcStatus, setRfcStatus] = useState<RfcStatus>("idle");
+  const [rfcCheckResult, setRfcCheckResult] = useState<RfcCheckResult | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     const normalized = rfc.trim().toUpperCase();
+    setRfcCheckResult(null);
 
     if (!normalized) {
       setRfcStatus("idle");
@@ -58,10 +61,13 @@ export function DossierCreatePage() {
     debounceRef.current = setTimeout(async () => {
       try {
         const result = await checkRfc(normalized);
+        setRfcCheckResult(result);
         if (!result.valid) {
           setRfcStatus("invalid_format");
         } else if (result.exists) {
           setRfcStatus("exists");
+        } else if (result.found_in_sat) {
+          setRfcStatus("sat_alert");
         } else {
           setRfcStatus("valid");
         }
@@ -134,7 +140,7 @@ export function DossierCreatePage() {
                   undefined
                 }
               />
-              <RfcIndicator status={rfcStatus} />
+              <RfcIndicator status={rfcStatus} checkResult={rfcCheckResult} />
             </div>
             <Input
               label="Razon Social"
@@ -165,19 +171,45 @@ export function DossierCreatePage() {
   );
 }
 
-function RfcIndicator({ status }: { status: RfcStatus }) {
+function RfcIndicator({ status, checkResult }: { status: RfcStatus; checkResult: RfcCheckResult | null }) {
   if (status === "checking") {
     return (
       <p className="mt-1 flex items-center gap-1 text-xs text-blue-600">
-        <Loader2 className="h-3 w-3 animate-spin" /> Verificando RFC...
+        <Loader2 className="h-3 w-3 animate-spin" /> Verificando RFC en SAT...
       </p>
     );
   }
   if (status === "valid") {
     return (
-      <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
-        <CheckCircle className="h-3 w-3" /> RFC disponible
-      </p>
+      <div className="mt-1 space-y-0.5">
+        <p className="flex items-center gap-1 text-xs text-green-600">
+          <CheckCircle className="h-3 w-3" /> RFC disponible
+        </p>
+        <p className="flex items-center gap-1 text-xs text-green-600">
+          <ShieldCheck className="h-3 w-3" /> Limpio en {checkResult?.total_lists_checked ?? 0} listas del SAT
+        </p>
+      </div>
+    );
+  }
+  if (status === "sat_alert" && checkResult) {
+    return (
+      <div className="mt-1 space-y-1">
+        <p className="flex items-center gap-1 text-xs text-green-600">
+          <CheckCircle className="h-3 w-3" /> RFC disponible
+        </p>
+        <div className="p-2 bg-red-50 border border-red-200 rounded">
+          <p className="flex items-center gap-1 text-xs font-medium text-red-700">
+            <ShieldAlert className="h-3 w-3" /> RFC encontrado en {checkResult.lists_matched.length} lista(s) del SAT:
+          </p>
+          <ul className="mt-1 space-y-0.5">
+            {checkResult.lists_matched.map((m, i) => (
+              <li key={i} className="text-xs text-red-600 ml-4">
+                • {m.article} — {m.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     );
   }
   if (status === "exists") {

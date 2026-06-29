@@ -11,8 +11,18 @@ export async function updateEntity(id: string, payload: Partial<EntityCreatePayl
   return data;
 }
 
-export async function checkRfc(rfc: string, excludeEntityId?: string): Promise<{ rfc: string; valid: boolean; exists: boolean }> {
+export interface RfcCheckResult {
+  rfc: string;
+  valid: boolean;
+  exists: boolean;
+  sat_lists_loaded: boolean;
+  found_in_sat: boolean;
+  lists_matched: { list: string; article: string; description: string }[];
+  total_lists_checked: number;
+}
+
+export async function checkRfc(rfc: string, excludeEntityId?: string): Promise<RfcCheckResult> {
   const params = excludeEntityId ? { exclude_entity_id: excludeEntityId } : {};
-  const { data } = await api.get(`/entities/check-rfc/${encodeURIComponent(rfc)}`, { params });
+  const { data } = await api.get<RfcCheckResult>(`/entities/check-rfc/${encodeURIComponent(rfc)}`, { params });
   return data;
 }

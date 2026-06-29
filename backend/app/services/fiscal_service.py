@@ -22,6 +22,32 @@ def set_loaded_lists(lists: dict[str, dict[str, list[dict]]]) -> None:
     _last_loaded = datetime.now(timezone.utc)
 
 
+def quick_rfc_lookup(rfc: str) -> dict:
+    """Busca un RFC en las listas SAT sin persistir. Retorna resumen rapido."""
+    rfc = rfc.strip().upper()
+    if not _fiscal_lists:
+        return {"sat_lists_loaded": False, "found_in_sat": False, "lists_matched": []}
+
+    matched = []
+    for list_key, rfc_index in _fiscal_lists.items():
+        if rfc in rfc_index:
+            config = SAT_LISTS[list_key]
+            matched.append(
+                {
+                    "list": list_key,
+                    "article": config["article"],
+                    "description": config["description"],
+                }
+            )
+
+    return {
+        "sat_lists_loaded": True,
+        "found_in_sat": len(matched) > 0,
+        "lists_matched": matched,
+        "total_lists_checked": len(_fiscal_lists),
+    }
+
+
 def get_lists_status() -> dict:
     return {
         "loaded": bool(_fiscal_lists),

@@ -18,6 +18,7 @@ from app.schemas.entity import (
     ShareholderResponse,
 )
 from app.services.audit_service import log_action
+from app.services.fiscal_service import quick_rfc_lookup
 from app.utils.rfc_validator import is_valid_rfc
 
 router = APIRouter(prefix="/entities", tags=["entities"])
@@ -100,7 +101,13 @@ async def check_rfc(
         query = query.where(LegalEntity.id != exclude_entity_id)
     result = await db.execute(query)
     exists = result.scalar_one_or_none() is not None
-    return {"rfc": normalized, "valid": valid, "exists": exists}
+    sat = quick_rfc_lookup(normalized)
+    return {
+        "rfc": normalized,
+        "valid": valid,
+        "exists": exists,
+        **sat,
+    }
 
 
 @router.get("/{entity_id}", response_model=EntityResponse)
