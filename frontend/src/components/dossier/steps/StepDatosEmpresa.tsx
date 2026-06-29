@@ -21,10 +21,10 @@ export function StepDatosEmpresa({ dossier, onComplete }: Props) {
     rfc: entity?.rfc ?? "",
     razon_social: entity?.razon_social ?? "",
     nombre_comercial: entity?.nombre_comercial ?? "",
-    domicilio_fiscal: "",
-    codigo_postal: "",
-    regimen_fiscal: "",
-    objeto_social: "",
+    domicilio_fiscal: entity?.domicilio_fiscal ?? "",
+    codigo_postal: entity?.codigo_postal ?? "",
+    regimen_fiscal: entity?.regimen_fiscal ?? "",
+    objeto_social: entity?.objeto_social ?? "",
   });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);

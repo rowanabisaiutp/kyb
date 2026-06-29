@@ -185,7 +185,10 @@ async def _get_dossier_or_404(db: AsyncSession, dossier_id: uuid.UUID) -> Dossie
     result = await db.execute(
         select(Dossier)
         .where(Dossier.id == dossier_id)
-        .options(selectinload(Dossier.entity))
+        .options(
+            selectinload(Dossier.entity).selectinload(LegalEntity.representatives),
+            selectinload(Dossier.entity).selectinload(LegalEntity.shareholders),
+        )
     )
     dossier = result.scalar_one_or_none()
     if not dossier:

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.schemas.entity import EntityListResponse
+from app.schemas.entity import EntityListResponse, EntityResponse
 
 
 class DossierCreate(BaseModel):
@@ -28,7 +28,7 @@ class DossierResponse(BaseModel):
     notes: str | None
     created_at: datetime
     updated_at: datetime
-    entity: EntityListResponse | None = None
+    entity: EntityResponse | None = None
 
     model_config = {"from_attributes": True}
 

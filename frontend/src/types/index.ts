@@ -66,7 +66,7 @@ export interface Dossier {
   notes: string | null;
   created_at: string;
   updated_at: string;
-  entity: EntityListItem | null;
+  entity: Entity | null;
 }
 
 export type DocumentType =
