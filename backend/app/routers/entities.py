@@ -88,7 +88,11 @@ async def list_entities(
 
 
 @router.get("/check-rfc/{rfc}")
-async def check_rfc(rfc: str, exclude_entity_id: uuid.UUID | None = None, db: AsyncSession = Depends(get_db)):
+async def check_rfc(
+    rfc: str,
+    exclude_entity_id: uuid.UUID | None = None,
+    db: AsyncSession = Depends(get_db),
+):
     normalized = rfc.upper().strip()
     valid = is_valid_rfc(normalized)
     query = select(LegalEntity).where(LegalEntity.rfc == normalized)
@@ -115,14 +119,17 @@ async def update_entity(
     if "rfc" in update_data and update_data["rfc"]:
         update_data["rfc"] = update_data["rfc"].upper().strip()
         if not is_valid_rfc(update_data["rfc"]):
-            raise HTTPException(status_code=400, detail=f"RFC format invalid: {update_data['rfc']}")
+            raise HTTPException(
+                status_code=400, detail=f"RFC format invalid: {update_data['rfc']}"
+            )
         if update_data["rfc"] != entity.rfc:
             existing = await db.execute(
                 select(LegalEntity).where(LegalEntity.rfc == update_data["rfc"])
             )
             if existing.scalar_one_or_none():
                 raise HTTPException(
-                    status_code=409, detail=f"Ya existe una entidad con RFC {update_data['rfc']}"
+                    status_code=409,
+                    detail=f"Ya existe una entidad con RFC {update_data['rfc']}",
                 )
     if "razon_social" in update_data and update_data["razon_social"]:
         update_data["razon_social"] = update_data["razon_social"].strip()
