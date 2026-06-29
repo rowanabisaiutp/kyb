@@ -1,12 +1,15 @@
 import axios from "axios";
-import { type FormEvent, useState } from "react";
+import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createEntity } from "../api/entities";
+import { createEntity, checkRfc } from "../api/entities";
 import { Button } from "../components/ui/Button";
 import { FadeIn } from "../components/ui/FadeIn";
 import { Input } from "../components/ui/Input";
 import { useCreateDossier } from "../hooks/useDossiers";
-import { formatRfc, isValidRfcFormat } from "../utils/formatRfc";
+import { isValidRfcFormat } from "../utils/formatRfc";
+
+type RfcStatus = "idle" | "checking" | "valid" | "invalid_format" | "exists";
 
 const ERROR_MESSAGES: Record<string, string> = {
   "already exists": "Ya existe un expediente con este RFC. Ve a la lista de expedientes para encontrarlo.",
@@ -34,10 +37,49 @@ export function DossierCreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [rfc, setRfc] = useState("");
   const [razonSocial, setRazonSocial] = useState("");
+  const [rfcStatus, setRfcStatus] = useState<RfcStatus>("idle");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    const normalized = rfc.trim().toUpperCase();
+
+    if (!normalized) {
+      setRfcStatus("idle");
+      return;
+    }
+
+    if (!isValidRfcFormat(normalized)) {
+      setRfcStatus(normalized.length >= 12 ? "invalid_format" : "idle");
+      return;
+    }
+
+    setRfcStatus("checking");
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const result = await checkRfc(normalized);
+        if (!result.valid) {
+          setRfcStatus("invalid_format");
+        } else if (result.exists) {
+          setRfcStatus("exists");
+        } else {
+          setRfcStatus("valid");
+        }
+      } catch {
+        setRfcStatus("idle");
+      }
+    }, 500);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [rfc]);
+
+  const rfcBlocked = rfcStatus === "exists" || rfcStatus === "invalid_format";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (rfcBlocked) return;
 
     if (!isValidRfcFormat(rfc)) {
       setError("Formato de RFC invalido. Debe tener 12-13 caracteres.");
@@ -47,7 +89,7 @@ export function DossierCreatePage() {
     setLoading(true);
     try {
       const entity = await createEntity({
-        rfc: formatRfc(rfc),
+        rfc: rfc.toUpperCase().trim(),
         razon_social: razonSocial.trim(),
       });
       const dossier = await createDossier.mutateAsync({ entity_id: entity.id });
@@ -77,15 +119,23 @@ export function DossierCreatePage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="RFC de la Persona Moral"
-              id="rfc"
-              value={rfc}
-              onChange={(e) => setRfc(e.target.value)}
-              placeholder="Ej: AAA010101AAA"
-              maxLength={13}
-              required
-            />
+            <div>
+              <Input
+                label="RFC de la Persona Moral"
+                id="rfc"
+                value={rfc}
+                onChange={(e) => setRfc(e.target.value)}
+                placeholder="Ej: AAA010101AAA"
+                maxLength={13}
+                required
+                error={
+                  rfcStatus === "invalid_format" ? "Formato de RFC invalido (ej: XAXX010101000)" :
+                  rfcStatus === "exists" ? "Ya existe una entidad con este RFC" :
+                  undefined
+                }
+              />
+              <RfcIndicator status={rfcStatus} />
+            </div>
             <Input
               label="Razon Social"
               id="razon_social"
@@ -95,7 +145,7 @@ export function DossierCreatePage() {
               required
             />
 
-            <Button type="submit" loading={loading} size="lg" className="w-full">
+            <Button type="submit" loading={loading} disabled={rfcBlocked} size="lg" className="w-full">
               Crear Expediente
             </Button>
           </form>
@@ -113,4 +163,29 @@ export function DossierCreatePage() {
       </FadeIn>
     </div>
   );
+}
+
+function RfcIndicator({ status }: { status: RfcStatus }) {
+  if (status === "checking") {
+    return (
+      <p className="mt-1 flex items-center gap-1 text-xs text-blue-600">
+        <Loader2 className="h-3 w-3 animate-spin" /> Verificando RFC...
+      </p>
+    );
+  }
+  if (status === "valid") {
+    return (
+      <p className="mt-1 flex items-center gap-1 text-xs text-green-600">
+        <CheckCircle className="h-3 w-3" /> RFC disponible
+      </p>
+    );
+  }
+  if (status === "exists") {
+    return (
+      <p className="mt-1 flex items-center gap-1 text-xs text-red-600">
+        <AlertCircle className="h-3 w-3" /> RFC ya registrado en el sistema
+      </p>
+    );
+  }
+  return null;
 }

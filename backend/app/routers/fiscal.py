@@ -13,6 +13,7 @@ from app.schemas.fiscal import (
     FiscalCheckSummary,
     FiscalListsStatus,
 )
+from app.services.fiscal_analysis_service import analyze_fiscal_results
 from app.services.fiscal_service import check_rfc_in_lists, get_lists_status
 
 router = APIRouter(tags=["fiscal"])
@@ -58,6 +59,55 @@ async def list_fiscal_checks(
         .order_by(FiscalListCheck.checked_at.desc())
     )
     return result.scalars().all()
+
+
+@router.post("/dossiers/{dossier_id}/fiscal-analysis")
+async def run_fiscal_analysis(
+    dossier_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    dossier = await db.get(Dossier, dossier_id)
+    if not dossier:
+        raise HTTPException(status_code=404, detail="Dossier not found")
+
+    entity = await db.get(LegalEntity, dossier.entity_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity not found")
+
+    result = await db.execute(
+        select(FiscalListCheck)
+        .where(FiscalListCheck.dossier_id == dossier_id)
+        .order_by(FiscalListCheck.checked_at.desc())
+    )
+    checks = result.scalars().all()
+    if not checks:
+        raise HTTPException(
+            status_code=400, detail="Ejecuta la verificacion fiscal primero"
+        )
+
+    entity_data = {
+        "rfc": entity.rfc,
+        "razon_social": entity.razon_social,
+        "domicilio_fiscal": entity.domicilio_fiscal,
+        "regimen_fiscal": entity.regimen_fiscal,
+    }
+    checks_data = [
+        {
+            "lista": c.list_type,
+            "referencia": c.list_reference,
+            "encontrado": c.found,
+            "detalle": c.result_detail,
+        }
+        for c in checks
+    ]
+
+    analysis = await analyze_fiscal_results(entity_data, checks_data)
+    if not analysis:
+        raise HTTPException(
+            status_code=503, detail="El servicio de AI no esta disponible"
+        )
+
+    return analysis
 
 
 @router.get("/fiscal-lists/status", response_model=FiscalListsStatus)

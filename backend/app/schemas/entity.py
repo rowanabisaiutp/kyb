@@ -50,6 +50,7 @@ class EntityCreate(BaseModel):
 
 
 class EntityUpdate(BaseModel):
+    rfc: str | None = Field(None, min_length=12, max_length=13)
     razon_social: str | None = Field(None, max_length=500)
     nombre_comercial: str | None = Field(None, max_length=500)
     domicilio_fiscal: str | None = None
